@@ -198,17 +198,26 @@ async fn open_region_selector(app: tauri::AppHandle) -> Result<(), String> {
     let monitor = monitors.into_iter().next().ok_or("No monitor found")?;
     let size = monitor.size();
 
-    WebviewWindowBuilder::new(&app, "region-selector", WebviewUrl::App("/region-selector".into()))
+    let window = WebviewWindowBuilder::new(&app, "region-selector", WebviewUrl::App("/region-selector".into()))
         .title("Select Region")
         .inner_size(size.width as f64, size.height as f64)
         .position(0.0, 0.0)
         .decorations(false)
-        .transparent(true)
         .always_on_top(true)
         .skip_taskbar(true)
         .focused(true)
         .build()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Failed to build window: {}", e))?;
+
+    // Set transparency after window creation (platform-specific)
+    #[cfg(target_os = "windows")]
+    {
+        // Windows supports transparency via effects
+        use tauri::Manager;
+        if let Some(webview_window) = app.get_webview_window("region-selector") {
+            let _ = webview_window.set_decorations(false);
+        }
+    }
 
     Ok(())
 }

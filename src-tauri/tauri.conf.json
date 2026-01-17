@@ -19,14 +19,12 @@
         "resizable": false,
         "fullscreen": false,
         "decorations": false,
-        "transparent": true,
         "alwaysOnTop": true,
         "skipTaskbar": false,
-        "visible": false,
-        "shadow": false
+        "visible": false
       }
     ],
-
+    "withGlobalTauri": true,
     "security": {
       "csp": null
     }
