@@ -62,6 +62,27 @@ jobs:
         if: matrix.platform != 'macos-latest'
         run: npm run tauri:build
 
+      - name: Test binary (macOS)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          echo "Testing macOS binary..."
+          file src-tauri/target/universal-apple-darwin/release/quantcalc
+          otool -L src-tauri/target/universal-apple-darwin/release/quantcalc | head -20
+          lipo -info src-tauri/target/universal-apple-darwin/release/quantcalc
+
+      - name: Test binary (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          echo "Testing Linux binary..."
+          file src-tauri/target/release/quantcalc
+          ldd src-tauri/target/release/quantcalc | head -20
+
+      - name: Test binary (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          echo "Testing Windows binary..."
+          Get-Item src-tauri/target/release/quantcalc.exe | Select-Object Name, Length, LastWriteTime
+
       - name: Upload artifacts (Windows)
         if: matrix.platform == 'windows-latest'
         uses: actions/upload-artifact@v4
