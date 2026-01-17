@@ -1,127 +1,137 @@
 # macOS Installation Troubleshooting
 
-## ❌ Fehler: "Application is not supported on this Mac"
+## ❌ Error: "Application is not supported on this Mac"
 
-### Mögliche Ursachen:
+### Possible Causes:
 
-#### 1. **macOS Version zu alt**
-**Mindestanforderung:** macOS 10.13 (High Sierra) oder neuer
+#### 1. **macOS Version Too Old**
 
-**Prüfen:**
+**Minimum Requirement:** macOS 10.13 (High Sierra) or newer
+
+**Check:**
+
 ```bash
 sw_vers
 ```
 
-**Lösung:**
-- macOS auf mindestens 10.13 updaten
-- Oder neueren Mac verwenden
+**Solution:**
+
+- Update macOS to at least 10.13
+- Or use a newer Mac
 
 ---
 
-#### 2. **Architektur-Problem (Intel vs. Apple Silicon)**
+#### 2. **Architecture Issue (Intel vs. Apple Silicon)**
 
-**Prüfen:**
+**Check:**
+
 ```bash
 uname -m
 ```
 
-**Ergebnis:**
+**Result:**
+
 - `x86_64` = Intel Mac
 - `arm64` = Apple Silicon (M1/M2/M3/M4)
 
-**Lösung für Apple Silicon:**
-Rosetta 2 installieren (für Intel-Apps):
+**Solution for Apple Silicon:**
+Install Rosetta 2 (for Intel apps):
+
 ```bash
 softwareupdate --install-rosetta
 ```
 
 ---
 
-#### 3. **Gatekeeper blockiert die App**
+#### 3. **Gatekeeper Blocking the App**
 
-**Symptom:** "App kann nicht geöffnet werden, da von unbekanntem Entwickler"
+**Symptom:** "App can't be opened because it is from an unidentified developer"
 
-**Lösung:**
-1. **Rechtsklick** auf `QuantCalc.app`
-2. **"Öffnen"** wählen
-3. Im Dialog nochmal **"Öffnen"** bestätigen
+**Solution:**
+
+1. **Right-click** on `QuantCalc.app`
+2. Select **"Open"**
+3. Confirm **"Open"** again in the dialog
 
 **Alternative (Terminal):**
+
 ```bash
 xattr -cr /Applications/QuantCalc.app
 ```
 
 ---
 
-#### 4. **App ist beschädigt**
+#### 4. **App is Damaged**
 
-**Symptom:** "App ist beschädigt und kann nicht geöffnet werden"
+**Symptom:** "App is damaged and can't be opened"
 
-**Lösung:**
+**Solution:**
+
 ```bash
-# Quarantäne-Attribut entfernen
+# Remove quarantine attribute
 xattr -d com.apple.quarantine /Applications/QuantCalc.app
 
-# Oder alle Attribute entfernen
+# Or remove all attributes
 xattr -cr /Applications/QuantCalc.app
 ```
 
 ---
 
-## 🔍 Diagnose-Script ausführen
+## 🔍 Run Diagnostic Script
 
-Lade das Diagnose-Script herunter und führe es aus:
+Download and run the diagnostic script:
 
 ```bash
-# Script ausführbar machen
+# Make script executable
 chmod +x scripts/check-macos-compatibility.sh
 
-# Script ausführen
+# Run script
 ./scripts/check-macos-compatibility.sh
 ```
 
-**Sende die Ausgabe an den Entwickler!**
+**Send the output to the developer!**
 
 ---
 
-## 📋 Manuelle Prüfung
+## 📋 Manual Check
 
-### System-Informationen sammeln:
+### Collect System Information:
 
 ```bash
 # macOS Version
 sw_vers
 
-# CPU Architektur
+# CPU Architecture
 uname -m
 
 # Gatekeeper Status
 spctl --status
 
-# App-Informationen
+# App Information
 file /Applications/QuantCalc.app/Contents/MacOS/QuantCalc
 
-# App-Attribute prüfen
+# Check App Attributes
 xattr -l /Applications/QuantCalc.app
 ```
 
 ---
 
-## ✅ Erfolgreiche Installation
+## ✅ Successful Installation
 
-Nach erfolgreicher Installation sollte die App:
-1. Im **Programme-Ordner** sein
-2. Beim ersten Start eine **Sicherheitswarnung** zeigen (normal!)
-3. Nach Bestätigung **normal starten**
+After successful installation, the app should:
+
+1. Be in the **Applications folder**
+2. Show a **security warning** on first launch (normal!)
+3. Start **normally** after confirmation
 
 ---
 
-## 🆘 Weitere Hilfe
+## 🆘 Need More Help?
 
-Wenn nichts funktioniert, sende diese Informationen:
+If nothing works, send this information:
 
 ```bash
-# Alle Infos in eine Datei schreiben
+# Write all info to a file
 {
   echo "=== System Info ==="
   sw_vers
@@ -139,8 +149,7 @@ Wenn nichts funktioniert, sende diese Informationen:
   spctl --status
 } > ~/Desktop/quantcalc-debug.txt
 
-echo "Debug-Info gespeichert: ~/Desktop/quantcalc-debug.txt"
+echo "Debug info saved: ~/Desktop/quantcalc-debug.txt"
 ```
 
-Dann die Datei `quantcalc-debug.txt` vom Desktop senden.
-
+Then send the `quantcalc-debug.txt` file from your Desktop.

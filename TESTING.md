@@ -1,44 +1,47 @@
-# Testing Guide - Alle Plattformen testen ohne Mac/Linux
+# Testing Guide - Test All Platforms Without Mac/Linux
 
-## 🎯 Ziel
-Du willst **Windows, macOS und Linux** Builds testen, hast aber nur **Windows**.
+## 🎯 Goal
+
+You want to test **Windows, macOS, and Linux** builds, but only have **Windows**.
 
 ---
 
-## ✅ Methode 1: Automatisches Artifact-Testing (EMPFOHLEN)
+## ✅ Method 1: Automated Artifact Testing (RECOMMENDED)
 
-### Voraussetzung: GitHub CLI installieren
+### Prerequisite: Install GitHub CLI
 
 ```powershell
-# Mit winget (Windows 10/11)
+# With winget (Windows 10/11)
 winget install GitHub.cli
 
-# Oder von https://cli.github.com/ herunterladen
+# Or download from https://cli.github.com/
 ```
 
-### Artifacts herunterladen und testen
+### Download and Test Artifacts
 
 ```powershell
-# Im Projekt-Ordner
+# In project folder
 cd C:\projects\QuantView\QuantTools\QuantCalc
 
-# Script ausführen
+# Run script
 .\scripts\download-and-test-artifacts.ps1
 ```
 
-**Das Script:**
-- ✅ Lädt automatisch die neuesten Artifacts herunter
-- ✅ Zeigt Dateigrößen und Pfade
-- ✅ Öffnet den Ordner mit allen Builds
-- ✅ Du kannst Windows-Installer direkt testen
+**The script:**
+
+- ✅ Automatically downloads the latest artifacts
+- ✅ Shows file sizes and paths
+- ✅ Opens the folder with all builds
+- ✅ You can test the Windows installer directly
 
 ---
 
-## 🧪 Methode 2: GitHub Actions Logs prüfen
+## 🧪 Method 2: Check GitHub Actions Logs
 
-Die **Test-Steps** im Workflow zeigen dir automatisch:
+The **test steps** in the workflow automatically show you:
 
 ### macOS Binary Info:
+
 ```
 Testing macOS binary...
 file: Mach-O universal binary with 2 architectures
@@ -47,6 +50,7 @@ file: Mach-O universal binary with 2 architectures
 ```
 
 ### Linux Binary Info:
+
 ```
 Testing Linux binary...
 file: ELF 64-bit LSB executable
@@ -54,167 +58,181 @@ ldd: libwebkit2gtk-4.1.so.0 => found
 ```
 
 ### Windows Binary Info:
+
 ```
 Testing Windows binary...
 Name: quantcalc.exe
 Length: 15.2 MB
 ```
 
-**Wo findest du das?**
+**Where to find this?**
+
 1. GitHub → Actions Tab
-2. Klick auf neuesten Workflow
-3. Klick auf "macOS" / "Linux" / "Windows" Job
-4. Scrolle zu "Test binary" Step
+2. Click on latest workflow
+3. Click on "macOS" / "Linux" / "Windows" job
+4. Scroll to "Test binary" step
 
 ---
 
-## 🖥️ Methode 3: Virtual Machines (Fortgeschritten)
+## 🖥️ Method 3: Virtual Machines (Advanced)
 
-### Linux testen (Einfach!)
+### Testing Linux (Easy!)
 
 **Option A: WSL2 (Windows Subsystem for Linux)**
+
 ```powershell
-# WSL2 installieren
+# Install WSL2
 wsl --install
 
-# Ubuntu starten
+# Start Ubuntu
 wsl
 
-# In WSL: .deb installieren
+# In WSL: Install .deb
 sudo dpkg -i QuantCalc_1.0.0_amd64.deb
 
-# App starten (braucht X Server auf Windows)
+# Start app (needs X Server on Windows)
 quantcalc
 ```
 
 **Option B: VirtualBox + Ubuntu**
-1. VirtualBox installieren (kostenlos)
-2. Ubuntu ISO herunterladen
-3. VM erstellen
-4. `.deb` in VM installieren
 
-### macOS testen (Schwierig!)
+1. Install VirtualBox (free)
+2. Download Ubuntu ISO
+3. Create VM
+4. Install `.deb` in VM
 
-**Option A: Cloud Mac mieten (BESTE LÖSUNG)**
-- **MacinCloud**: $30/Monat oder $1/Stunde
+### Testing macOS (Difficult!)
+
+**Option A: Rent Cloud Mac (BEST SOLUTION)**
+
+- **MacinCloud**: $30/month or $1/hour
   - https://www.macincloud.com/
-  - Sofort verfügbar
-  - Echter Mac, remote zugreifen
-  
-- **AWS EC2 Mac**: ~$1/Stunde
+  - Available immediately
+  - Real Mac, remote access
+- **AWS EC2 Mac**: ~$1/hour
   - https://aws.amazon.com/ec2/instance-types/mac/
-  - Braucht AWS Account
-  
-- **MacStadium**: Ab $50/Monat
+  - Requires AWS account
+- **MacStadium**: From $50/month
   - https://www.macstadium.com/
 
-**Option B: Gebrauchten Mac kaufen**
-- Mac Mini (2014-2018): ~200-400€ auf eBay
-- Nur zum Testen nutzen
-- Beste Langzeit-Lösung
+**Option B: Buy Used Mac**
 
-**Option C: Freund/Kollege mit Mac** (was du jetzt machst)
-- ✅ Kostenlos
-- ❌ Nicht immer verfügbar
+- Mac Mini (2014-2018): ~$200-400 on eBay
+- Use only for testing
+- Best long-term solution
+
+**Option C: Friend/Colleague with Mac** (what you're doing now)
+
+- ✅ Free
+- ❌ Not always available
 
 ---
 
-## 📊 Methode 4: Automatische Tests schreiben
+## 📊 Method 4: Write Automated Tests
 
-### Unit Tests (für Logik)
+### Unit Tests (for logic)
+
 ```bash
-# Tests ausführen
+# Run tests
 npm test
 ```
 
-### E2E Tests (für UI)
-Könnte man mit Playwright/Cypress machen, aber:
-- ❌ Komplex für Desktop-Apps
-- ❌ Braucht trotzdem echte Plattformen
-- ⚠️ Nur sinnvoll für große Projekte
+### E2E Tests (for UI)
+
+Could be done with Playwright/Cypress, but:
+
+- ❌ Complex for desktop apps
+- ❌ Still needs real platforms
+- ⚠️ Only worthwhile for large projects
 
 ---
 
-## 🎯 Empfohlener Workflow
+## 🎯 Recommended Workflow
 
-### Für dich (Windows-Entwickler):
+### For you (Windows developer):
 
-1. **Entwickeln auf Windows**
+1. **Develop on Windows**
+
    ```bash
    npm run tauri:dev
    ```
 
-2. **Lokale Windows-Tests**
+2. **Local Windows tests**
+
    ```bash
    npm run tauri:build
-   # Installer testen: src-tauri/target/release/bundle/nsis/*.exe
+   # Test installer: src-tauri/target/release/bundle/nsis/*.exe
    ```
 
-3. **Push zu GitHub**
+3. **Push to GitHub**
+
    ```bash
    git push
    ```
 
-4. **Artifacts automatisch testen**
+4. **Test artifacts automatically**
+
    ```powershell
    .\scripts\download-and-test-artifacts.ps1
    ```
 
-5. **GitHub Actions Logs prüfen**
-   - macOS Test-Output ansehen
-   - Linux Test-Output ansehen
+5. **Check GitHub Actions logs**
+   - View macOS test output
+   - View Linux test output
 
-6. **Finale Tests (1x pro Release)**
-   - Freund mit Mac testen lassen
-   - Oder Cloud Mac für 1 Stunde mieten ($1)
-
----
-
-## 💰 Kosten-Vergleich
-
-| **Methode** | **Kosten** | **Aufwand** | **Qualität** |
-|-------------|-----------|-------------|--------------|
-| GitHub Actions Logs | Kostenlos | Niedrig | Mittel |
-| Artifact Download | Kostenlos | Niedrig | Mittel |
-| WSL2 (Linux) | Kostenlos | Mittel | Hoch |
-| Cloud Mac (1h) | $1 | Niedrig | Hoch |
-| Cloud Mac (Monat) | $30 | Niedrig | Hoch |
-| Gebrauchter Mac | €300 | Hoch | Sehr Hoch |
-| Freund mit Mac | Kostenlos | Mittel | Hoch |
+6. **Final tests (once per release)**
+   - Have friend with Mac test
+   - Or rent Cloud Mac for 1 hour ($1)
 
 ---
 
-## ✅ Meine Empfehlung für dich:
+## 💰 Cost Comparison
 
-**Während Entwicklung:**
-1. ✅ Artifact-Download Script nutzen
-2. ✅ GitHub Actions Logs prüfen
-3. ✅ Windows lokal testen
+| **Method**          | **Cost** | **Effort** | **Quality** |
+| ------------------- | -------- | ---------- | ----------- |
+| GitHub Actions Logs | Free     | Low        | Medium      |
+| Artifact Download   | Free     | Low        | Medium      |
+| WSL2 (Linux)        | Free     | Medium     | High        |
+| Cloud Mac (1h)      | $1       | Low        | High        |
+| Cloud Mac (month)   | $30      | Low        | High        |
+| Used Mac            | $300     | High       | Very High   |
+| Friend with Mac     | Free     | Medium     | High        |
 
-**Vor Release:**
-1. ✅ Cloud Mac für 1 Stunde mieten ($1)
-2. ✅ Alle Plattformen final testen
-3. ✅ Oder Freund mit Mac
+---
 
-**Langfristig (wenn Projekt wächst):**
-- Gebrauchten Mac Mini kaufen (~€300)
-- Oder Cloud Mac Abo ($30/Monat)
+## ✅ My Recommendation for You:
+
+**During Development:**
+
+1. ✅ Use artifact download script
+2. ✅ Check GitHub Actions logs
+3. ✅ Test Windows locally
+
+**Before Release:**
+
+1. ✅ Rent Cloud Mac for 1 hour ($1)
+2. ✅ Final test all platforms
+3. ✅ Or have friend with Mac test
+
+**Long-term (if project grows):**
+
+- Buy used Mac Mini (~$300)
+- Or Cloud Mac subscription ($30/month)
 
 ---
 
 ## 🚀 Quick Start
 
 ```powershell
-# 1. GitHub CLI installieren
+# 1. Install GitHub CLI
 winget install GitHub.cli
 
-# 2. Einloggen
+# 2. Login
 gh auth login
 
-# 3. Artifacts testen
+# 3. Test artifacts
 cd C:\projects\QuantView\QuantTools\QuantCalc
 .\scripts\download-and-test-artifacts.ps1
 ```
 
-**Fertig!** Du siehst jetzt alle Builds und kannst Windows direkt testen.
-
+**Done!** You can now see all builds and test Windows directly.
