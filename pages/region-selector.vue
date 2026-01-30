@@ -61,7 +61,15 @@ async function endSelection() {
   const height = Math.abs(endY - startY);
 
   if (width > 10 && height > 10) {
-    await invoke("set_selected_region", { region: [x, y, width, height] });
+    // Scale coordinates for high-DPI displays
+    const scale = window.devicePixelRatio || 1;
+    const scaledRegion = [
+      Math.round(x * scale),
+      Math.round(y * scale),
+      Math.round(width * scale),
+      Math.round(height * scale),
+    ];
+    await invoke("set_selected_region", { region: scaledRegion });
   } else {
     await invoke("set_selected_region", { region: null });
   }
@@ -91,7 +99,7 @@ onUnmounted(() => {
 html,
 body,
 #__nuxt {
-  background: transparent !important;
+  background: rgba(0, 0, 0, 0.15) !important;
   margin: 0;
   padding: 0;
   overflow: hidden;
@@ -107,7 +115,7 @@ body,
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.2);
+  background: transparent;
   cursor: crosshair;
 }
 

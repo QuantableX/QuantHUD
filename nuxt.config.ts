@@ -3,6 +3,7 @@ import pkg from "./package.json";
 export default defineNuxtConfig({
   ssr: false,
   devtools: { enabled: false },
+  telemetry: false,
 
   runtimeConfig: {
     public: {

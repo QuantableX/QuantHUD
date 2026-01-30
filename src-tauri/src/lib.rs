@@ -27,6 +27,10 @@ const CONTENT_WIDTH: i32 = 320; // Width of main content area
 const TRIGGER_WIDTH: i32 = 20;  // Width of trigger bar
 const TOTAL_WIDTH: i32 = CONTENT_WIDTH + TRIGGER_WIDTH; // 340px
 
+// Windows 11 invisible window borders (for shadow/resize handles even with decorations=false)
+const BORDER_OFFSET_X: i32 = 8; // Left/Right invisible border
+const BORDER_OFFSET_Y: i32 = 8; // Top invisible border
+
 // Tucking resizes window to only show trigger zone (20px)
 // Showing expands window to full width (340px)
 // Position parameter determines which edge the window sticks to
@@ -37,20 +41,31 @@ async fn tuck_window(window: WebviewWindow, position: String) -> Result<(), Stri
     let monitor = window.current_monitor()
         .map_err(|e| e.to_string())?
         .ok_or("No monitor found")?;
+
+    let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
-    let current_size = window.outer_size().map_err(|e| e.to_string())?;
+    let screen_height = monitor.size().height as i32;
+    let taskbar_height = (40.0 * scale_factor) as i32;
+    let window_height = screen_height - taskbar_height;
 
-    // Set new width
-    window.set_size(tauri::PhysicalSize::new(TRIGGER_WIDTH as u32, current_size.height))
-        .map_err(|e| e.to_string())?;
+    // Set new size with correct height (in physical pixels)
+    window.set_size(tauri::PhysicalSize::new(
+        (TRIGGER_WIDTH as f64 * scale_factor) as u32,
+        window_height as u32
+    )).map_err(|e| e.to_string())?;
 
-    // Reposition to correct edge
+    // Reposition to correct edge (in physical pixels)
+    // Account for Windows 11 invisible borders
+    let border_x = (BORDER_OFFSET_X as f64 * scale_factor) as i32;
+    let border_y = (BORDER_OFFSET_Y as f64 * scale_factor) as i32;
+
     let x = if position == "right" {
-        screen_width - TRIGGER_WIDTH
+        // On right side, reduce offset by ~2px to eliminate deadspace
+        screen_width - (TRIGGER_WIDTH as f64 * scale_factor) as i32 - (border_x - (2.0 * scale_factor) as i32)
     } else {
-        0
+        -border_x
     };
-    window.set_position(PhysicalPosition::new(x, 0))
+    window.set_position(PhysicalPosition::new(x, -border_y))
         .map_err(|e| e.to_string())?;
 
     Ok(())
@@ -62,20 +77,31 @@ async fn show_window(window: WebviewWindow, position: String) -> Result<(), Stri
     let monitor = window.current_monitor()
         .map_err(|e| e.to_string())?
         .ok_or("No monitor found")?;
+
+    let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
-    let current_size = window.outer_size().map_err(|e| e.to_string())?;
+    let screen_height = monitor.size().height as i32;
+    let taskbar_height = (40.0 * scale_factor) as i32;
+    let window_height = screen_height - taskbar_height;
 
-    // Set new width
-    window.set_size(tauri::PhysicalSize::new(TOTAL_WIDTH as u32, current_size.height))
-        .map_err(|e| e.to_string())?;
+    // Set new size with correct height (in physical pixels)
+    window.set_size(tauri::PhysicalSize::new(
+        (TOTAL_WIDTH as f64 * scale_factor) as u32,
+        window_height as u32
+    )).map_err(|e| e.to_string())?;
 
-    // Reposition to correct edge
+    // Reposition to correct edge (in physical pixels)
+    // Account for Windows 11 invisible borders
+    let border_x = (BORDER_OFFSET_X as f64 * scale_factor) as i32;
+    let border_y = (BORDER_OFFSET_Y as f64 * scale_factor) as i32;
+
     let x = if position == "right" {
-        screen_width - TOTAL_WIDTH
+        // On right side, reduce offset by ~2px to eliminate deadspace
+        screen_width - (TOTAL_WIDTH as f64 * scale_factor) as i32 - (border_x - (2.0 * scale_factor) as i32)
     } else {
-        0
+        -border_x
     };
-    window.set_position(PhysicalPosition::new(x, 0))
+    window.set_position(PhysicalPosition::new(x, -border_y))
         .map_err(|e| e.to_string())?;
 
     Ok(())
@@ -84,8 +110,12 @@ async fn show_window(window: WebviewWindow, position: String) -> Result<(), Stri
 /// Check if window is tucked
 #[tauri::command]
 async fn is_window_tucked(window: WebviewWindow) -> Result<bool, String> {
+    let monitor = window.current_monitor()
+        .map_err(|e| e.to_string())?
+        .ok_or("No monitor found")?;
+    let scale_factor = monitor.scale_factor();
     let size = window.outer_size().map_err(|e| e.to_string())?;
-    Ok(size.width <= TRIGGER_WIDTH as u32)
+    Ok(size.width <= (TRIGGER_WIDTH as f64 * scale_factor) as u32)
 }
 
 /// Setup window for full height (call on startup)
@@ -98,17 +128,22 @@ async fn setup_window_size(window: WebviewWindow) -> Result<(), String> {
         .map_err(|e| e.to_string())?
         .ok_or("No monitor found")?;
 
-    let screen_height = monitor.size().height;
-    let taskbar_height = 40; // Windows 11 taskbar
+    let scale_factor = monitor.scale_factor();
+    let screen_height = monitor.size().height as i32;
+    let taskbar_height = (40.0 * scale_factor) as i32; // Windows 11 taskbar
 
     let window_height = screen_height - taskbar_height;
-    let window_width = TOTAL_WIDTH as u32;
+    let window_width = (TOTAL_WIDTH as f64 * scale_factor) as u32;
 
-    window.set_size(PhysicalSize::new(window_width, window_height))
+    window.set_size(PhysicalSize::new(window_width, window_height as u32))
         .map_err(|e| e.to_string())?;
 
     // Position window at left edge by default
-    window.set_position(PhysicalPosition::new(0, 0))
+    // Account for Windows 11 invisible borders
+    let border_x = (BORDER_OFFSET_X as f64 * scale_factor) as i32;
+    let border_y = (BORDER_OFFSET_Y as f64 * scale_factor) as i32;
+
+    window.set_position(PhysicalPosition::new(-border_x, -border_y))
         .map_err(|e| e.to_string())?;
 
     window.show().map_err(|e| e.to_string())?;
@@ -123,15 +158,21 @@ async fn set_window_position(window: WebviewWindow, position: String) -> Result<
         .map_err(|e| e.to_string())?
         .ok_or("No monitor found")?;
 
+    let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
 
+    // Account for Windows 11 invisible borders
+    let border_x = (BORDER_OFFSET_X as f64 * scale_factor) as i32;
+    let border_y = (BORDER_OFFSET_Y as f64 * scale_factor) as i32;
+
     let x = if position == "right" {
-        screen_width - TOTAL_WIDTH
+        // On right side, reduce offset by ~2px to eliminate deadspace
+        screen_width - (TOTAL_WIDTH as f64 * scale_factor) as i32 - (border_x - (2.0 * scale_factor) as i32)
     } else {
-        0
+        -border_x
     };
 
-    window.set_position(PhysicalPosition::new(x, 0))
+    window.set_position(PhysicalPosition::new(x, -border_y))
         .map_err(|e| e.to_string())?;
 
     Ok(())
@@ -198,16 +239,25 @@ async fn open_region_selector(app: tauri::AppHandle) -> Result<(), String> {
     let monitor = monitors.into_iter().next().ok_or("No monitor found")?;
     let size = monitor.size();
 
-    let _window = WebviewWindowBuilder::new(&app, "region-selector", WebviewUrl::App("/region-selector".into()))
+    let window = WebviewWindowBuilder::new(&app, "region-selector", WebviewUrl::App("/region-selector".into()))
         .title("Select Region")
-        .inner_size(size.width as f64, size.height as f64)
-        .position(0.0, 0.0)
+        .fullscreen(true)
         .decorations(false)
+        .transparent(true)
         .always_on_top(true)
         .skip_taskbar(true)
-        .focused(true)
+        .resizable(false)
+        .visible(false)
         .build()
         .map_err(|e| format!("Failed to build window: {}", e))?;
+
+    // Show window after a tiny delay to ensure content is rendered
+    let window_clone = window.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let _ = window_clone.show();
+        let _ = window_clone.set_focus();
+    });
 
     Ok(())
 }

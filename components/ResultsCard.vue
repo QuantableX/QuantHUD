@@ -1,6 +1,21 @@
 <template>
   <div class="card results-card">
-    <div class="card-title">📊 Results</div>
+    <div class="card-title">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        style="margin-right: 6px; vertical-align: middle"
+      >
+        <line x1="12" y1="20" x2="12" y2="10" />
+        <line x1="18" y1="20" x2="18" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="16" />
+      </svg>
+      Results
+    </div>
 
     <div v-if="error" class="error-msg">{{ error }}</div>
 
@@ -14,7 +29,17 @@
         :disabled="!results"
         @click="$emit('copy', formatNumber(results?.posSize1x))"
       >
-        📋
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
       </button>
     </div>
 
@@ -28,7 +53,17 @@
         :disabled="!results"
         @click="$emit('copy', formatNumber(results?.posSizeLev))"
       >
-        📋
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
       </button>
     </div>
 
@@ -42,7 +77,17 @@
         :disabled="!results"
         @click="$emit('copy', formatNumber(results?.quantity, 6))"
       >
-        📋
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
       </button>
     </div>
 
@@ -56,7 +101,17 @@
         :disabled="!results"
         @click="$emit('copy', formatNumber(results?.netProfit))"
       >
-        📋
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
       </button>
     </div>
 
@@ -70,7 +125,17 @@
         :disabled="!results"
         @click="$emit('copy', formatNumber(results?.netLoss))"
       >
-        📋
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
       </button>
     </div>
 
@@ -84,7 +149,17 @@
         :disabled="!results"
         @click="$emit('copy', formatNumber(results?.rrRatio))"
       >
-        📋
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
       </button>
     </div>
 
@@ -98,7 +173,17 @@
         :disabled="!results"
         @click="$emit('copy', formatNumber(results?.breakeven))"
       >
-        📋
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
       </button>
     </div>
   </div>

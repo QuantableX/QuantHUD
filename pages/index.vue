@@ -22,15 +22,43 @@
             @click="togglePin"
             title="Pin window (keeps it visible)"
           >
-            📌
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="12" y1="17" x2="12" y2="22" />
+              <path
+                d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
+              />
+            </svg>
           </button>
-          <h1 class="title">⚜️ 𝐐𝐮𝐚𝐧𝐭𝐂𝐚𝐥𝐜 ⚜️</h1>
+          <h1 class="title">𝐐𝐮𝐚𝐧𝐭𝐂𝐚𝐥𝐜</h1>
           <button
             class="btn btn-icon settings-btn"
             @click="showSettings = true"
             title="Settings"
           >
-            ⚙️
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+              />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
           </button>
         </header>
 
@@ -41,7 +69,23 @@
             @click="handleCapture"
             :disabled="isProcessing"
           >
-            📸 Capture (F9)
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              style="margin-right: 6px"
+            >
+              <path
+                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+              />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+            Capture (F9)
           </button>
           <button
             class="btn btn-icon region-btn"
@@ -49,7 +93,19 @@
             @click="toggleRegion"
             title="Select scan region"
           >
-            🔲
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
           </button>
         </div>
 
@@ -65,7 +121,18 @@
           >
             ▲ LONG ▲
           </button>
-          <button class="btn btn-icon btn-red" @click="handleClear">✕</button>
+          <button class="btn btn-icon btn-red" @click="handleClear">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
           <button
             class="btn direction-btn short"
             :class="{ active: !isLong }"
@@ -224,7 +291,7 @@ async function selectRegion() {
   // Poll for result (window closes after selection)
   const checkResult = async () => {
     const region = await invoke<[number, number, number, number] | null>(
-      "get_selected_region"
+      "get_selected_region",
     );
     if (region) {
       scanRegion.value = region;
@@ -302,7 +369,7 @@ function applyTheme() {
   if (config.value.colorTheme) {
     document.documentElement.setAttribute(
       "data-theme",
-      config.value.colorTheme
+      config.value.colorTheme,
     );
   }
 }
@@ -388,10 +455,10 @@ function applyTheme() {
 
 .title {
   font-size: 22px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #ffd700, #ff8c00);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-weight: 900;
+  color: white;
+  letter-spacing: 1px;
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
 }
 
 .capture-row {

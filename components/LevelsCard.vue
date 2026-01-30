@@ -5,7 +5,24 @@
         class="direction-indicator"
         :class="{ long: isLong, short: !isLong }"
       >
-        {{ isLong ? "📈 LONG" : "📉 SHORT" }}
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          style="margin-right: 4px; vertical-align: middle"
+        >
+          <polyline
+            :points="
+              isLong
+                ? '22 12 18 12 15 3 9 21 6 12 2 12'
+                : '22 12 18 12 15 21 9 3 6 12 2 12'
+            "
+          />
+        </svg>
+        {{ isLong ? "LONG" : "SHORT" }}
       </span>
     </div>
 
@@ -21,7 +38,17 @@
         class="btn btn-icon btn-ghost"
         @click="$emit('copy', String(levels.entry))"
       >
-        📋
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
       </button>
     </div>
 
@@ -37,7 +64,17 @@
         class="btn btn-icon btn-ghost"
         @click="$emit('copy', String(levels.tp))"
       >
-        📋
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
       </button>
     </div>
 
@@ -53,7 +90,17 @@
         class="btn btn-icon btn-ghost"
         @click="$emit('copy', String(levels.sl))"
       >
-        📋
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
       </button>
     </div>
   </div>

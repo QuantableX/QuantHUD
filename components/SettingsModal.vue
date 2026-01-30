@@ -2,8 +2,37 @@
   <div v-if="isOpen" class="modal-overlay" @click.self="close">
     <div class="modal">
       <header class="modal-header">
-        <h2>⚙️ Settings</h2>
-        <button class="btn btn-icon" @click="close">✕</button>
+        <h2>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="margin-right: 6px; vertical-align: middle"
+          >
+            <path
+              d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+            />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          Settings
+        </h2>
+        <button class="btn btn-icon" @click="close">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
       </header>
 
       <div class="modal-content">
@@ -40,14 +69,37 @@
               :class="{ active: theme === 'default' }"
               @click="setTheme('default')"
             >
-              🎨 Default
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                style="margin-right: 4px; vertical-align: middle"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2a10 10 0 0 0 0 20" />
+              </svg>
+              Default
             </button>
             <button
               class="btn option-btn"
               :class="{ active: theme === 'monochrome' }"
               @click="setTheme('monochrome')"
             >
-              ⬛ Monochrome
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                style="margin-right: 4px; vertical-align: middle"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+              </svg>
+              Monochrome
             </button>
           </div>
         </div>

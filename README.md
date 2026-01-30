@@ -45,27 +45,12 @@ cargo --version
 ### 1. Install Dependencies
 
 ```bash
-cd QuantTools/QuantCalc
 
 # Install Node dependencies
 npm install
 
 # Rust dependencies are installed automatically on first build
 ```
-
-### 2. Generate Icons
-
-Copy the logo from the prototype and generate icons:
-
-```bash
-# Copy logo
-cp "../QuantCalc Prototype/logo.png" ./src-tauri/icons/icon.png
-
-# Generate all icon sizes (optional - uses Tauri CLI)
-npx @tauri-apps/cli icon ./src-tauri/icons/icon.png
-```
-
----
 
 ## Development
 
@@ -76,6 +61,7 @@ npm run tauri:dev
 ```
 
 This starts:
+
 - Nuxt dev server on `http://localhost:3000`
 - Tauri window pointing to the dev server
 
@@ -98,6 +84,7 @@ npm run tauri:build
 ```
 
 Output files:
+
 - **Windows**: `src-tauri/target/release/quantcalc.exe`
 - **Installer**: `src-tauri/target/release/bundle/nsis/QuantCalc_1.0.0_x64-setup.exe`
 
@@ -147,8 +134,8 @@ QuantCalc/
 
 ## Hotkeys
 
-| Key | Action |
-|-----|--------|
+| Key | Action                          |
+| --- | ------------------------------- |
 | F9  | Capture screen & extract levels |
 
 ---
@@ -156,11 +143,13 @@ QuantCalc/
 ## Troubleshooting
 
 ### OCR Not Working
+
 - Ensure Tesseract is installed and in PATH
 - Set `TESSDATA_PREFIX` to the tessdata folder
 - Try selecting a specific region with the 🔲 button
 
 ### Build Fails
+
 - Run `rustup update` to update Rust
 - Check Visual Studio Build Tools are installed
 - Ensure Node modules are installed: `npm install`
@@ -170,4 +159,3 @@ QuantCalc/
 ## License
 
 MIT
-
