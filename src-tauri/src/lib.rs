@@ -234,11 +234,6 @@ struct RegionState(Mutex<Option<[i32; 4]>>);
 async fn open_region_selector(app: tauri::AppHandle) -> Result<(), String> {
     use tauri::{WebviewUrl, WebviewWindowBuilder};
 
-    // Get primary monitor size
-    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
-    let monitor = monitors.into_iter().next().ok_or("No monitor found")?;
-    let size = monitor.size();
-
     let window = WebviewWindowBuilder::new(&app, "region-selector", WebviewUrl::App("/region-selector".into()))
         .title("Select Region")
         .fullscreen(true)
