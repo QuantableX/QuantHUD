@@ -1,12 +1,12 @@
 [package]
-name = "quantcalc"
+name = "quanthud"
 version = "1.0.0"
-description = "QuantCalc - Fibonacci Level Extractor for Trading"
+description = "QuantHUD - Fibonacci Level Extractor for Trading"
 authors = ["QuantableX"]
 edition = "2021"
 
 [lib]
-name = "quantcalc_lib"
+name = "quanthud_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]

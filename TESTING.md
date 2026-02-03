@@ -21,7 +21,7 @@ winget install GitHub.cli
 
 ```powershell
 # In project folder
-cd C:\projects\QuantView\QuantTools\QuantCalc
+cd C:\projects\QuantView\QuantTools\QuantHUD
 
 # Run script
 .\scripts\download-and-test-artifacts.ps1
@@ -231,7 +231,7 @@ winget install GitHub.cli
 gh auth login
 
 # 3. Test artifacts
-cd C:\projects\QuantView\QuantTools\QuantCalc
+cd C:\projects\QuantView\QuantTools\QuantHUD
 .\scripts\download-and-test-artifacts.ps1
 ```
 

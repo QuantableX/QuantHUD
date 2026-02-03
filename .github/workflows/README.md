@@ -1,74 +1,84 @@
 # GitHub Actions Build Workflow
 
-Dieser Workflow baut QuantCalc automatisch für **Windows**, **macOS** und **Linux**.
+This workflow automatically builds QuantHUD for **Windows**, **macOS**, and **Linux**.
 
-## 🚀 Wie funktioniert es?
+## 🚀 How does it work?
 
-Der Build wird automatisch gestartet bei:
-- **Push** auf `main` oder `master` Branch
-- **Pull Requests** auf `main` oder `master`
-- **Tags** die mit `v` beginnen (z.B. `v1.0.0`)
-- **Manuell** über GitHub Actions UI
+The build is automatically triggered on:
 
-## 📦 Build-Outputs
+- **Push** to `main` or `master` branch
+- **Pull Requests** to `main` or `master`
+- **Tags** starting with `v` (e.g., `v1.0.0`)
+- **Manually** via GitHub Actions UI
 
-Nach erfolgreichem Build findest du die Dateien unter **Actions** → **Build QuantCalc** → **Artifacts**:
+## 📦 Build Outputs
+
+After a successful build, you can find the files under **Actions** → **Build QuantHUD** → **Artifacts**:
 
 ### Windows
-- `QuantCalc-Windows.zip` enthält:
-  - `QuantCalc_1.0.0_x64-setup.exe` (NSIS Installer)
-  - `quantcalc.exe` (Standalone)
+
+- `QuantHUD-Windows.zip` contains:
+  - `QuantHUD_1.0.0_x64-setup.exe` (NSIS Installer)
+  - `quanthud.exe` (Standalone)
 
 ### macOS
-- `QuantCalc-macOS.zip` enthält:
-  - `QuantCalc_1.0.0_x64.dmg` (DMG Installer)
-  - `QuantCalc.app` (App Bundle)
+
+- `QuantHUD-macOS.zip` contains:
+  - `QuantHUD_1.0.0_x64.dmg` (DMG Installer)
+  - `QuantHUD.app` (App Bundle)
 
 ### Linux
-- `QuantCalc-Linux.zip` enthält:
-  - `quantcalc_1.0.0_amd64.deb` (Debian/Ubuntu)
-  - `quantcalc_1.0.0_amd64.AppImage` (Universal)
-  - `quantcalc` (Binary)
 
-## 🎯 Verwendung
+- `QuantHUD-Linux.zip` contains:
+  - `quanthud_1.0.0_amd64.deb` (Debian/Ubuntu)
+  - `quanthud_1.0.0_amd64.AppImage` (Universal)
+  - `quanthud` (Binary)
 
-### 1. Code pushen
+## 🎯 Usage
+
+### 1. Push Code
+
 ```bash
 git add .
 git commit -m "Update"
 git push
 ```
 
-### 2. Artifacts herunterladen
-1. Gehe zu GitHub → **Actions** Tab
-2. Klicke auf den neuesten **Build QuantCalc** Workflow
-3. Scrolle nach unten zu **Artifacts**
-4. Lade die gewünschte Plattform herunter
+### 2. Download Artifacts
 
-### 3. Release erstellen (Optional)
-Für einen offiziellen Release mit Tag:
+1. Go to GitHub → **Actions** tab
+2. Click on the latest **Build QuantHUD** workflow
+3. Scroll down to **Artifacts**
+4. Download the desired platform
+
+### 3. Create Release (Optional)
+
+For an official release with tag:
+
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-## ⚙️ Manuelle Builds
+## ⚙️ Manual Builds
 
-Du kannst auch manuell einen Build starten:
-1. Gehe zu **Actions** Tab
-2. Wähle **Build QuantCalc** Workflow
-3. Klicke **Run workflow**
-4. Wähle den Branch und klicke **Run workflow**
+You can also start a build manually:
+
+1. Go to **Actions** tab
+2. Select **Build QuantHUD** workflow
+3. Click **Run workflow**
+4. Choose the branch and click **Run workflow**
 
 ## 🔧 Troubleshooting
 
-### Build schlägt fehl?
-- Prüfe die Logs im Actions Tab
-- Stelle sicher, dass `npm run tauri:build` lokal funktioniert
-- Prüfe ob alle Dependencies in `package.json` und `Cargo.toml` korrekt sind
+### Build fails?
 
-### Artifacts nicht gefunden?
-- Warte bis der Build komplett durchgelaufen ist (✅ grüner Haken)
-- Artifacts sind nur 90 Tage verfügbar
-- Erstelle einen Release für permanente Downloads
+- Check the logs in the Actions tab
+- Make sure `npm run tauri:build` works locally
+- Check if all dependencies in `package.json` and `Cargo.toml` are correct
 
+### Artifacts not found?
+
+- Wait until the build is completely finished (✅ green checkmark)
+- Artifacts are only available for 90 days
+- Create a release for permanent downloads

@@ -1,4 +1,4 @@
-# QuantCalc
+# QuantHUD
 
 **Fibonacci Level Extractor for Trading** - A desktop app that captures TradingView screenshots, extracts Fibonacci levels via OCR, and calculates position sizing.
 
@@ -85,8 +85,8 @@ npm run tauri:build
 
 Output files:
 
-- **Windows**: `src-tauri/target/release/quantcalc.exe`
-- **Installer**: `src-tauri/target/release/bundle/nsis/QuantCalc_1.0.0_x64-setup.exe`
+- **Windows**: `src-tauri/target/release/quanthud.exe`
+- **Installer**: `src-tauri/target/release/bundle/nsis/QuantHUD_1.0.0_x64-setup.exe`
 
 ### Build Options
 
@@ -103,7 +103,7 @@ npm run tauri:build -- --target x86_64-pc-windows-msvc
 ## Project Structure
 
 ```
-QuantCalc/
+QuantHUD/
 ├── assets/css/          # Global styles
 ├── components/          # Vue components
 │   ├── LevelsCard.vue   # Entry/TP/SL inputs

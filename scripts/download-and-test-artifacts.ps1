@@ -1,4 +1,4 @@
-# QuantCalc - Download and Test Artifacts from GitHub Actions
+# QuantHUD - Download and Test Artifacts from GitHub Actions
 # Requires: GitHub CLI (gh) - Install: winget install GitHub.cli
 
 param(
@@ -6,7 +6,7 @@ param(
 )
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "QuantCalc Artifact Downloader & Tester" -ForegroundColor Cyan
+Write-Host "QuantHUD Artifact Downloader & Tester" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -22,7 +22,7 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
 }
 
 # Create temp directory
-$tempDir = Join-Path $env:TEMP "quantcalc-artifacts"
+$tempDir = Join-Path $env:TEMP "quanthud-artifacts"
 if (Test-Path $tempDir) {
     Remove-Item $tempDir -Recurse -Force
 }
@@ -53,7 +53,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Test Windows artifact
-$windowsArtifact = Get-ChildItem -Path $tempDir -Filter "QuantCalc-Windows" -Directory -ErrorAction SilentlyContinue
+$windowsArtifact = Get-ChildItem -Path $tempDir -Filter "QuantHUD-Windows" -Directory -ErrorAction SilentlyContinue
 if ($windowsArtifact) {
     Write-Host "[Windows]" -ForegroundColor Green
     $exeFiles = Get-ChildItem -Path $windowsArtifact.FullName -Filter "*.exe" -Recurse
@@ -69,7 +69,7 @@ if ($windowsArtifact) {
 }
 
 # Test macOS artifact
-$macosArtifact = Get-ChildItem -Path $tempDir -Filter "QuantCalc-macOS" -Directory -ErrorAction SilentlyContinue
+$macosArtifact = Get-ChildItem -Path $tempDir -Filter "QuantHUD-macOS" -Directory -ErrorAction SilentlyContinue
 if ($macosArtifact) {
     Write-Host "[macOS]" -ForegroundColor Green
     $dmgFiles = Get-ChildItem -Path $macosArtifact.FullName -Filter "*.dmg" -Recurse
@@ -85,7 +85,7 @@ if ($macosArtifact) {
 }
 
 # Test Linux artifact
-$linuxArtifact = Get-ChildItem -Path $tempDir -Filter "QuantCalc-Linux" -Directory -ErrorAction SilentlyContinue
+$linuxArtifact = Get-ChildItem -Path $tempDir -Filter "QuantHUD-Linux" -Directory -ErrorAction SilentlyContinue
 if ($linuxArtifact) {
     Write-Host "[Linux]" -ForegroundColor Green
     $debFiles = Get-ChildItem -Path $linuxArtifact.FullName -Filter "*.deb" -Recurse

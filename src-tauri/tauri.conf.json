@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "QuantCalc",
+  "productName": "QuantHUD",
   "version": "1.0.0",
-  "identifier": "com.quantview.quantcalc",
+  "identifier": "com.quantview.quanthud",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3000",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "QuantCalc",
+        "title": "QuantHUD",
         "width": 340,
         "height": 900,
         "resizable": false,
