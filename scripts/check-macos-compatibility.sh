@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "=========================================="
-echo "QuantCalc macOS Compatibility Check"
+echo "QuantHUD macOS Compatibility Check"
 echo "=========================================="
 echo ""
 

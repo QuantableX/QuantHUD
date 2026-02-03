@@ -12,7 +12,7 @@ pub enum ConfigError {
 
 fn get_config_path() -> Result<PathBuf, ConfigError> {
     let config_dir = dirs::config_dir().ok_or(ConfigError::NoConfigDir)?;
-    let app_dir = config_dir.join("quantcalc");
+    let app_dir = config_dir.join("quanthub");
     
     if !app_dir.exists() {
         fs::create_dir_all(&app_dir)?;

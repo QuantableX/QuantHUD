@@ -49,14 +49,14 @@ softwareupdate --install-rosetta
 
 **Solution:**
 
-1. **Right-click** on `QuantCalc.app`
+1. **Right-click** on `QuantHUD.app`
 2. Select **"Open"**
 3. Confirm **"Open"** again in the dialog
 
 **Alternative (Terminal):**
 
 ```bash
-xattr -cr /Applications/QuantCalc.app
+xattr -cr /Applications/QuantHUD.app
 ```
 
 ---
@@ -69,10 +69,10 @@ xattr -cr /Applications/QuantCalc.app
 
 ```bash
 # Remove quarantine attribute
-xattr -d com.apple.quarantine /Applications/QuantCalc.app
+xattr -d com.apple.quarantine /Applications/QuantHUD.app
 
 # Or remove all attributes
-xattr -cr /Applications/QuantCalc.app
+xattr -cr /Applications/QuantHUD.app
 ```
 
 ---
@@ -108,10 +108,10 @@ uname -m
 spctl --status
 
 # App Information
-file /Applications/QuantCalc.app/Contents/MacOS/QuantCalc
+file /Applications/QuantHUD.app/Contents/MacOS/QuantHUD
 
 # Check App Attributes
-xattr -l /Applications/QuantCalc.app
+xattr -l /Applications/QuantHUD.app
 ```
 
 ---
@@ -140,16 +140,16 @@ If nothing works, send this information:
   uname -m
   echo ""
   echo "=== App File Info ==="
-  file /Applications/QuantCalc.app/Contents/MacOS/QuantCalc
+  file /Applications/QuantHUD.app/Contents/MacOS/QuantHUD
   echo ""
   echo "=== App Attributes ==="
-  xattr -l /Applications/QuantCalc.app
+  xattr -l /Applications/QuantHUD.app
   echo ""
   echo "=== Gatekeeper ==="
   spctl --status
-} > ~/Desktop/quantcalc-debug.txt
+} > ~/Desktop/quanthub-debug.txt
 
-echo "Debug info saved: ~/Desktop/quantcalc-debug.txt"
+echo "Debug info saved: ~/Desktop/quanthub-debug.txt"
 ```
 
-Then send the `quantcalc-debug.txt` file from your Desktop.
+Then send the `quanthub-debug.txt` file from your Desktop.

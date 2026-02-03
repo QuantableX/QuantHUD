@@ -10,7 +10,7 @@ export interface AppConfig {
   colorTheme: ColorTheme;
 }
 
-const CONFIG_KEY = "quantcalc_config";
+const CONFIG_KEY = "quanthub_config";
 
 export function useConfig() {
   const config = ref<AppConfig>({

@@ -61,7 +61,7 @@ ldd: libwebkit2gtk-4.1.so.0 => found
 
 ```
 Testing Windows binary...
-Name: quantcalc.exe
+Name: quanthub.exe
 Length: 15.2 MB
 ```
 
@@ -88,10 +88,10 @@ wsl --install
 wsl
 
 # In WSL: Install .deb
-sudo dpkg -i QuantCalc_1.0.0_amd64.deb
+sudo dpkg -i QuantHUD_1.0.0_amd64.deb
 
 # Start app (needs X Server on Windows)
-quantcalc
+quanthub
 ```
 
 **Option B: VirtualBox + Ubuntu**
