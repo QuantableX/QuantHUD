@@ -1,16 +1,1 @@
-{
-  "default": {
-    "identifier": "default",
-    "description": "Default capabilities for QuantHUD",
-    "local": true,
-    "windows": ["main"],
-    "permissions": [
-      "core:default",
-      "shell:allow-open",
-      "clipboard-manager:allow-write-text",
-      "clipboard-manager:allow-read-text",
-      "global-shortcut:allow-register",
-      "global-shortcut:allow-unregister"
-    ]
-  }
-}
+{"default":{"identifier":"default","description":"Default capabilities for QuantHUD","local":true,"windows":["main"],"permissions":["core:default","shell:allow-open","clipboard-manager:allow-write-text","clipboard-manager:allow-read-text","global-shortcut:allow-register","global-shortcut:allow-unregister"]}}

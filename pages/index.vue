@@ -14,9 +14,17 @@
     <div class="main-container">
       <!-- Scrollable Content -->
       <div class="scroll-content">
-        <!-- Header with Pin and Settings -->
+        <!-- Header with Burger and Pin -->
         <header class="header">
+          <!-- Left side: Burger when left, Pin when right -->
+          <Sidebar
+            v-if="windowPosition === 'left'"
+            :active-module="activeModule"
+            :window-position="windowPosition"
+            @update:active-module="activeModule = $event"
+          />
           <button
+            v-else
             class="btn btn-icon pin-btn"
             :class="{ active: isPinned }"
             @click="togglePin"
@@ -38,11 +46,16 @@
               />
             </svg>
           </button>
-          <h1 class="title">𝐐𝐮𝐚𝐧𝐭𝐂𝐚𝐥𝐜</h1>
+
+          <h1 class="title">𝐐𝐮𝐚𝐧𝐭𝐇𝐔𝐃</h1>
+
+          <!-- Right side: Pin when left, Burger when right -->
           <button
-            class="btn btn-icon settings-btn"
-            @click="showSettings = true"
-            title="Settings"
+            v-if="windowPosition === 'left'"
+            class="btn btn-icon pin-btn"
+            :class="{ active: isPinned }"
+            @click="togglePin"
+            title="Pin window (keeps it visible)"
           >
             <svg
               width="18"
@@ -50,120 +63,255 @@
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="2.5"
               stroke-linecap="round"
               stroke-linejoin="round"
             >
+              <line x1="12" y1="17" x2="12" y2="22" />
               <path
-                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+                d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
               />
-              <circle cx="12" cy="12" r="3" />
             </svg>
           </button>
+          <Sidebar
+            v-else
+            :active-module="activeModule"
+            :window-position="windowPosition"
+            @update:active-module="activeModule = $event"
+          />
         </header>
 
-        <!-- Capture Controls -->
-        <div class="capture-row">
-          <button
-            class="btn btn-primary capture-btn"
-            @click="handleCapture"
-            :disabled="isProcessing"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              style="margin-right: 6px"
-            >
-              <path
-                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
-              />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
-            Capture (F9)
-          </button>
-          <button
-            class="btn btn-icon region-btn"
-            :class="{ active: scanRegion }"
-            @click="toggleRegion"
-            title="Select scan region"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <rect x="3" y="3" width="7" height="7" />
-              <rect x="14" y="3" width="7" height="7" />
-              <rect x="3" y="14" width="7" height="7" />
-              <rect x="14" y="14" width="7" height="7" />
-            </svg>
-          </button>
+        <!-- Home Module -->
+        <div v-if="activeModule === 'home'" class="module-content">
+          <div class="card">
+            <h2 style="margin-bottom: 16px">🏠 Home</h2>
+            <p style="color: var(--text-secondary); text-align: center">
+              Coming soon...
+            </p>
+          </div>
         </div>
 
-        <!-- Status -->
-        <div class="status">{{ status }}</div>
-
-        <!-- Long/Short Toggle -->
-        <div class="direction-toggle">
-          <button
-            class="btn direction-btn long"
-            :class="{ active: isLong }"
-            @click="setDirection(true)"
-          >
-            ▲ LONG ▲
-          </button>
-          <button class="btn btn-icon btn-red" @click="handleClear">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-          <button
-            class="btn direction-btn short"
-            :class="{ active: !isLong }"
-            @click="setDirection(false)"
-          >
-            ▼ SHORT ▼
-          </button>
+        <!-- Notes Module -->
+        <div v-else-if="activeModule === 'notes'" class="module-content">
+          <div class="card">
+            <h2 style="margin-bottom: 16px">📝 Notes</h2>
+            <p style="color: var(--text-secondary); text-align: center">
+              Coming soon...
+            </p>
+          </div>
         </div>
 
-        <!-- Levels Card -->
-        <LevelsCard
-          :is-long="isLong"
-          :levels="levels"
-          @update:levels="updateLevels"
-          @copy="copyToClipboard"
-        />
+        <!-- Calculator Module -->
+        <div v-else-if="activeModule === 'calculator'">
+          <!-- Capture Controls -->
+          <div class="capture-row">
+            <button
+              class="btn btn-primary capture-btn"
+              @click="handleCapture"
+              :disabled="isProcessing"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="margin-right: 6px"
+              >
+                <path
+                  d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+                />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+              Capture (F9)
+            </button>
+            <button
+              class="btn btn-icon region-btn"
+              :class="{ active: scanRegion }"
+              @click="toggleRegion"
+              title="Select scan region"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+              </svg>
+            </button>
+          </div>
 
-        <!-- Calculator Card -->
-        <CalculatorCard
-          :inputs="inputs"
-          @update:inputs="updateInputs"
-          @calculate="calculate"
-        />
+          <!-- Status -->
+          <div class="status">{{ status }}</div>
 
-        <!-- Results Card -->
-        <ResultsCard
-          :results="results"
-          :leverage="inputs.leverage"
-          :error="error"
-          @copy="copyToClipboard"
-        />
+          <!-- Long/Short Toggle -->
+          <div class="direction-toggle">
+            <button
+              class="btn direction-btn long"
+              :class="{ active: isLong }"
+              @click="setDirection(true)"
+            >
+              ▲ LONG ▲
+            </button>
+            <button class="btn btn-icon btn-red" @click="handleClear">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+            <button
+              class="btn direction-btn short"
+              :class="{ active: !isLong }"
+              @click="setDirection(false)"
+            >
+              ▼ SHORT ▼
+            </button>
+          </div>
+
+          <!-- Levels Card -->
+          <LevelsCard
+            :is-long="isLong"
+            :levels="levels"
+            @update:levels="updateLevels"
+            @copy="copyToClipboard"
+          />
+
+          <!-- Calculator Card -->
+          <CalculatorCard
+            :inputs="inputs"
+            @update:inputs="updateInputs"
+            @calculate="calculate"
+          />
+
+          <!-- Results Card -->
+          <ResultsCard
+            :results="results"
+            :leverage="inputs.leverage"
+            :error="error"
+            @copy="copyToClipboard"
+          />
+        </div>
+
+        <!-- Settings Module -->
+        <div v-else-if="activeModule === 'settings'" class="module-content">
+          <div class="card">
+            <!-- Version -->
+            <div class="version-badge">v{{ appVersion }}</div>
+
+            <!-- Window Position -->
+            <div class="setting-group">
+              <label class="setting-label">Window Position</label>
+              <div class="setting-options">
+                <button
+                  class="btn option-btn"
+                  :class="{ active: config.windowPosition === 'left' }"
+                  @click="handlePositionChange('left')"
+                >
+                  ◀ Left
+                </button>
+                <button
+                  class="btn option-btn"
+                  :class="{ active: config.windowPosition === 'right' }"
+                  @click="handlePositionChange('right')"
+                >
+                  Right ▶
+                </button>
+              </div>
+            </div>
+
+            <!-- Color Theme -->
+            <div class="setting-group">
+              <label class="setting-label">Color Theme</label>
+              <div class="setting-options">
+                <button
+                  class="btn option-btn"
+                  :class="{ active: config.colorTheme === 'default' }"
+                  @click="handleThemeChange('default')"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    style="margin-right: 4px; vertical-align: middle"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 2a10 10 0 0 0 0 20" />
+                  </svg>
+                  Default
+                </button>
+                <button
+                  class="btn option-btn"
+                  :class="{ active: config.colorTheme === 'monochrome' }"
+                  @click="handleThemeChange('monochrome')"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    style="margin-right: 4px; vertical-align: middle"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                  </svg>
+                  Monochrome
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Placeholder Modules -->
+        <div
+          v-else-if="
+            [
+              'placeholder1',
+              'placeholder2',
+              'placeholder3',
+              'placeholder4',
+              'placeholder5',
+              'placeholder6',
+              'placeholder7',
+            ].includes(activeModule)
+          "
+          class="module-content"
+        >
+          <div class="card">
+            <h2 style="margin-bottom: 16px">📦 {{ activeModule }}</h2>
+            <p style="color: var(--text-secondary); text-align: center">
+              Coming soon...
+            </p>
+          </div>
+        </div>
+
+        <!-- Fallback for unknown modules -->
+        <div v-else class="module-content">
+          <div class="card">
+            <h2 style="margin-bottom: 16px">{{ activeModule }}</h2>
+            <p style="color: var(--text-secondary); text-align: center">
+              This module is coming soon.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -171,20 +319,13 @@
     <div v-if="windowPosition === 'left'" class="trigger-zone trigger-right">
       <span class="trigger-arrow">{{ isTucked ? "▶" : "◀" }}</span>
     </div>
-
-    <!-- Settings Modal -->
-    <SettingsModal
-      :is-open="showSettings"
-      :position="config.windowPosition"
-      :theme="config.colorTheme"
-      @close="showSettings = false"
-      @update:position="handlePositionChange"
-      @update:theme="handleThemeChange"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
+const runtimeConfig = useRuntimeConfig();
+const appVersion = runtimeConfig.public.appVersion;
+
 const { inputs, levels, isLong, results, error, calculate, clear } =
   useCalculator();
 const {
@@ -207,7 +348,7 @@ const {
 
 const isPinned = ref(false);
 const isTucked = ref(true);
-const showSettings = ref(false);
+const activeModule = ref("home");
 const windowPosition = computed(() => config.value.windowPosition || "left");
 let invoke: any = null;
 
@@ -434,23 +575,21 @@ function applyTheme() {
 
 .header {
   position: relative;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 6px 0;
 }
 
-.pin-btn {
-  position: absolute;
-  left: 0;
-  top: 6px;
-}
-.pin-btn.active {
-  background: var(--accent-green-dim);
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.settings-btn {
-  position: absolute;
-  right: 0;
-  top: 6px;
+.pin-btn.active {
+  background: var(--accent-green-dim);
 }
 
 .title {
@@ -510,5 +649,67 @@ function applyTheme() {
 .direction-btn:not(.active) {
   background: #444;
   color: var(--text-secondary);
+}
+
+.module-content {
+  padding: 8px 0;
+}
+
+.module-content .card {
+  margin: 8px 0;
+}
+
+.module-content h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.version-badge {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  padding: 6px 12px;
+  background: var(--input-bg);
+  border-radius: 6px;
+  display: block;
+}
+
+.setting-group {
+  margin-bottom: 16px;
+}
+
+.setting-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.setting-options {
+  display: flex;
+  gap: 8px;
+}
+
+.option-btn {
+  flex: 1;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.option-btn.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+}
+
+.option-btn:hover:not(.active) {
+  background: var(--bg-secondary);
+  border-color: var(--accent-blue);
 }
 </style>
