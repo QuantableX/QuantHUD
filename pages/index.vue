@@ -1,13 +1,24 @@
 <template>
   <div
     class="app-wrapper"
-    :class="{ tucked: isTucked, 'position-right': windowPosition === 'right' }"
+    :class="{
+      tucked: isTucked,
+      'position-right': windowPosition === 'right',
+      'trigger-halfcircle': triggerStyle === 'halfcircle',
+      'trigger-column': triggerStyle === 'column',
+    }"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
   >
     <!-- Trigger zone (left for right-position) -->
-    <div v-if="windowPosition === 'right'" class="trigger-zone trigger-left">
-      <span class="trigger-arrow">{{ isTucked ? "◀" : "▶" }}</span>
+    <div
+      v-if="windowPosition === 'right'"
+      class="trigger-zone trigger-left"
+      @mouseenter="triggerStyle === 'column' ? onMouseEnter() : undefined"
+    >
+      <div class="trigger-tab" @mouseenter="onMouseEnter">
+        <span class="trigger-arrow">{{ isTucked ? "◀" : "▶" }}</span>
+      </div>
     </div>
 
     <!-- Main content area -->
@@ -303,6 +314,31 @@
                 </button>
               </div>
             </div>
+
+            <!-- Trigger Style -->
+            <div class="setting-group">
+              <label class="setting-label">Trigger Style</label>
+              <div class="setting-options">
+                <button
+                  class="btn option-btn"
+                  :class="{
+                    active:
+                      config.triggerStyle === 'halfcircle' ||
+                      !config.triggerStyle,
+                  }"
+                  @click="handleTriggerStyleChange('halfcircle')"
+                >
+                  ◗ Half Circle
+                </button>
+                <button
+                  class="btn option-btn"
+                  :class="{ active: config.triggerStyle === 'column' }"
+                  @click="handleTriggerStyleChange('column')"
+                >
+                  ▮ Column
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -346,8 +382,14 @@
     </div>
 
     <!-- Trigger zone (right for left-position) -->
-    <div v-if="windowPosition === 'left'" class="trigger-zone trigger-right">
-      <span class="trigger-arrow">{{ isTucked ? "▶" : "◀" }}</span>
+    <div
+      v-if="windowPosition === 'left'"
+      class="trigger-zone trigger-right"
+      @mouseenter="triggerStyle === 'column' ? onMouseEnter() : undefined"
+    >
+      <div class="trigger-tab" @mouseenter="onMouseEnter">
+        <span class="trigger-arrow">{{ isTucked ? "▶" : "◀" }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -374,6 +416,7 @@ const {
   setScanRegion,
   setWindowPosition,
   setColorTheme,
+  setTriggerStyle,
   setMonitorIndex,
 } = useConfig();
 
@@ -429,6 +472,7 @@ const homeModules = [
   },
 ];
 const windowPosition = computed(() => config.value.windowPosition || "left");
+const triggerStyle = computed(() => config.value.triggerStyle || "halfcircle");
 const availableMonitors = ref<
   Array<{
     index: number;
@@ -661,6 +705,10 @@ function handleThemeChange(theme: "default" | "monochrome") {
   applyTheme();
 }
 
+function handleTriggerStyleChange(style: "column" | "halfcircle") {
+  setTriggerStyle(style);
+}
+
 function applyTheme() {
   if (config.value.colorTheme) {
     document.documentElement.setAttribute(
@@ -681,6 +729,9 @@ function applyTheme() {
 }
 
 /* Tucked state - window shrinks, hide main content */
+.app-wrapper.tucked {
+  pointer-events: none;
+}
 .app-wrapper.tucked .main-container {
   display: none;
 }
@@ -693,33 +744,89 @@ function applyTheme() {
   background: var(--bg-primary);
 }
 
+/* Trigger zone: no layout space, just a positioning anchor */
 .trigger-zone {
+  position: relative;
   width: 20px;
   flex-shrink: 0;
-  background: #1a1a2e;
+  pointer-events: none;
+}
+
+/* Half-circle tab: absolutely positioned so only it is visible */
+.trigger-tab {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 44px;
+  background: var(--bg-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-}
-.trigger-right {
-  border-left: 1px solid #444;
-}
-.trigger-left {
-  border-right: 1px solid #444;
+  transition: background 0.15s ease;
+  border: 1px solid var(--border-color);
+  pointer-events: auto;
 }
 
-.trigger-zone:hover {
-  background: #252540;
+/* Right-side tab: flat left edge, rounded right edge */
+.trigger-right .trigger-tab {
+  right: 0;
+  border-radius: 0 22px 22px 0;
+  border-left: none;
+}
+
+/* Left-side tab: rounded left edge, flat right edge */
+.trigger-left .trigger-tab {
+  left: 0;
+  border-radius: 22px 0 0 22px;
+  border-right: none;
+}
+
+.trigger-tab:hover {
+  background: var(--bg-secondary);
 }
 
 .trigger-arrow {
-  color: #888;
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
-.trigger-zone:hover .trigger-arrow {
-  color: #fff;
+.trigger-tab:hover .trigger-arrow {
+  color: var(--text-primary);
+}
+
+/* Column trigger style overrides */
+.trigger-column.tucked {
+  pointer-events: auto;
+}
+
+.trigger-column .trigger-zone {
+  pointer-events: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+}
+
+.trigger-column .trigger-zone.trigger-right {
+  border-left: none;
+}
+
+.trigger-column .trigger-zone.trigger-left {
+  border-right: none;
+}
+
+.trigger-column .trigger-tab {
+  position: static;
+  transform: none;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.trigger-column .trigger-tab:hover {
+  background: var(--bg-secondary);
 }
 
 .scroll-content {

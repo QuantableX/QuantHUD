@@ -27,10 +27,6 @@ const CONTENT_WIDTH: i32 = 320; // Width of main content area
 const TRIGGER_WIDTH: i32 = 20;  // Width of trigger bar
 const TOTAL_WIDTH: i32 = CONTENT_WIDTH + TRIGGER_WIDTH; // 340px
 
-// Windows 11 invisible window borders (for shadow/resize handles even with decorations=false)
-const BORDER_OFFSET_X: i32 = 8; // Left/Right invisible border
-const BORDER_OFFSET_Y: i32 = 8; // Top invisible border
-
 // Tucking resizes window to only show trigger zone (20px)
 // Showing expands window to full width (340px)
 // Position parameter determines which edge the window sticks to
@@ -61,22 +57,17 @@ async fn tuck_window(window: WebviewWindow, position: String, monitor_index: Opt
     )).map_err(|e| e.to_string())?;
 
     // Reposition to correct edge (in physical pixels)
-    // Account for Windows 11 invisible borders
-    let border_x = (BORDER_OFFSET_X as f64 * scale_factor) as i32;
-    let border_y = (BORDER_OFFSET_Y as f64 * scale_factor) as i32;
-
     let x = if position == "right" {
-        // On right side, reduce offset by ~2px to eliminate deadspace
-        screen_width - (TRIGGER_WIDTH as f64 * scale_factor) as i32 - (border_x - (2.0 * scale_factor) as i32)
+        screen_width - (TRIGGER_WIDTH as f64 * scale_factor) as i32
     } else {
-        -border_x
+        0
     };
 
     // Get monitor position offset
     let monitor_x = monitor.position().x;
     let monitor_y = monitor.position().y;
 
-    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y - border_y))
+    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y))
         .map_err(|e| e.to_string())?;
 
     Ok(())
@@ -108,22 +99,17 @@ async fn show_window(window: WebviewWindow, position: String, monitor_index: Opt
     )).map_err(|e| e.to_string())?;
 
     // Reposition to correct edge (in physical pixels)
-    // Account for Windows 11 invisible borders
-    let border_x = (BORDER_OFFSET_X as f64 * scale_factor) as i32;
-    let border_y = (BORDER_OFFSET_Y as f64 * scale_factor) as i32;
-
     let x = if position == "right" {
-        // On right side, reduce offset by ~2px to eliminate deadspace
-        screen_width - (TOTAL_WIDTH as f64 * scale_factor) as i32 - (border_x - (2.0 * scale_factor) as i32)
+        screen_width - (TOTAL_WIDTH as f64 * scale_factor) as i32
     } else {
-        -border_x
+        0
     };
 
     // Get monitor position offset
     let monitor_x = monitor.position().x;
     let monitor_y = monitor.position().y;
 
-    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y - border_y))
+    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y))
         .map_err(|e| e.to_string())?;
 
     Ok(())
@@ -167,15 +153,10 @@ async fn setup_window_size(window: WebviewWindow, monitor_index: Option<usize>) 
         .map_err(|e| e.to_string())?;
 
     // Position window at left edge by default
-    // Account for Windows 11 invisible borders
-    let border_x = (BORDER_OFFSET_X as f64 * scale_factor) as i32;
-    let border_y = (BORDER_OFFSET_Y as f64 * scale_factor) as i32;
-
-    // Get monitor position offset
     let monitor_x = monitor.position().x;
     let monitor_y = monitor.position().y;
 
-    window.set_position(PhysicalPosition::new(monitor_x - border_x, monitor_y - border_y))
+    window.set_position(PhysicalPosition::new(monitor_x, monitor_y))
         .map_err(|e| e.to_string())?;
 
     window.show().map_err(|e| e.to_string())?;
@@ -199,22 +180,17 @@ async fn set_window_position(window: WebviewWindow, position: String, monitor_in
     let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
 
-    // Account for Windows 11 invisible borders
-    let border_x = (BORDER_OFFSET_X as f64 * scale_factor) as i32;
-    let border_y = (BORDER_OFFSET_Y as f64 * scale_factor) as i32;
-
     let x = if position == "right" {
-        // On right side, reduce offset by ~2px to eliminate deadspace
-        screen_width - (TOTAL_WIDTH as f64 * scale_factor) as i32 - (border_x - (2.0 * scale_factor) as i32)
+        screen_width - (TOTAL_WIDTH as f64 * scale_factor) as i32
     } else {
-        -border_x
+        0
     };
 
     // Get monitor position offset
     let monitor_x = monitor.position().x;
     let monitor_y = monitor.position().y;
 
-    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y - border_y))
+    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y))
         .map_err(|e| e.to_string())?;
 
     Ok(())

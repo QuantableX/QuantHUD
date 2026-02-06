@@ -2,12 +2,14 @@ import type { CalculatorInputs } from "./useCalculator";
 
 export type WindowPosition = "left" | "right";
 export type ColorTheme = "default" | "monochrome";
+export type TriggerStyle = "column" | "halfcircle";
 
 export interface AppConfig {
   scanRegion: [number, number, number, number] | null;
   calcSettings: Partial<CalculatorInputs>;
   windowPosition: WindowPosition;
   colorTheme: ColorTheme;
+  triggerStyle: TriggerStyle;
   monitorIndex: number;
 }
 
@@ -19,6 +21,7 @@ export function useConfig() {
     calcSettings: {},
     windowPosition: "left",
     colorTheme: "default",
+    triggerStyle: "halfcircle",
     monitorIndex: 0,
   });
 
@@ -77,6 +80,11 @@ export function useConfig() {
     saveConfig();
   }
 
+  function setTriggerStyle(style: TriggerStyle) {
+    config.value.triggerStyle = style;
+    saveConfig();
+  }
+
   function setMonitorIndex(index: number) {
     config.value.monitorIndex = index;
     saveConfig();
@@ -95,6 +103,7 @@ export function useConfig() {
     setCalcSettings,
     setWindowPosition,
     setColorTheme,
+    setTriggerStyle,
     setMonitorIndex,
   };
 }
