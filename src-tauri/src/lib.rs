@@ -47,7 +47,7 @@ async fn tuck_window(window: WebviewWindow, position: String, monitor_index: Opt
     let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
     let screen_height = monitor.size().height as i32;
-    let taskbar_height = (40.0 * scale_factor) as i32;
+    let taskbar_height = (48.0 * scale_factor) as i32;
     let window_height = screen_height - taskbar_height;
 
     // Set new size with correct height (in physical pixels)
@@ -89,7 +89,7 @@ async fn show_window(window: WebviewWindow, position: String, monitor_index: Opt
     let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
     let screen_height = monitor.size().height as i32;
-    let taskbar_height = (40.0 * scale_factor) as i32;
+    let taskbar_height = (48.0 * scale_factor) as i32;
     let window_height = screen_height - taskbar_height;
 
     // Reposition FIRST so the window doesn't momentarily overflow
@@ -144,7 +144,7 @@ async fn setup_window_size(window: WebviewWindow, monitor_index: Option<usize>) 
 
     let scale_factor = monitor.scale_factor();
     let screen_height = monitor.size().height as i32;
-    let taskbar_height = (40.0 * scale_factor) as i32; // Windows 11 taskbar
+    let taskbar_height = (48.0 * scale_factor) as i32; // Windows 11 taskbar
 
     let window_height = screen_height - taskbar_height;
     let window_width = (TOTAL_WIDTH as f64 * scale_factor) as u32;
