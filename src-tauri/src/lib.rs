@@ -92,25 +92,25 @@ async fn show_window(window: WebviewWindow, position: String, monitor_index: Opt
     let taskbar_height = (40.0 * scale_factor) as i32;
     let window_height = screen_height - taskbar_height;
 
-    // Set new size with correct height (in physical pixels)
-    window.set_size(tauri::PhysicalSize::new(
-        (TOTAL_WIDTH as f64 * scale_factor) as u32,
-        window_height as u32
-    )).map_err(|e| e.to_string())?;
-
-    // Reposition to correct edge (in physical pixels)
+    // Reposition FIRST so the window doesn't momentarily overflow
+    // onto an adjacent monitor before the resize completes
     let x = if position == "right" {
         screen_width - (TOTAL_WIDTH as f64 * scale_factor) as i32
     } else {
         0
     };
 
-    // Get monitor position offset
     let monitor_x = monitor.position().x;
     let monitor_y = monitor.position().y;
 
     window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y))
         .map_err(|e| e.to_string())?;
+
+    // Then expand to full width
+    window.set_size(tauri::PhysicalSize::new(
+        (TOTAL_WIDTH as f64 * scale_factor) as u32,
+        window_height as u32
+    )).map_err(|e| e.to_string())?;
 
     Ok(())
 }
