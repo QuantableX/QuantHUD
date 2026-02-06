@@ -8,6 +8,7 @@ export interface AppConfig {
   calcSettings: Partial<CalculatorInputs>;
   windowPosition: WindowPosition;
   colorTheme: ColorTheme;
+  monitorIndex: number;
 }
 
 const CONFIG_KEY = "quanthub_config";
@@ -18,6 +19,7 @@ export function useConfig() {
     calcSettings: {},
     windowPosition: "left",
     colorTheme: "default",
+    monitorIndex: 0,
   });
 
   async function loadConfig() {
@@ -75,6 +77,11 @@ export function useConfig() {
     saveConfig();
   }
 
+  function setMonitorIndex(index: number) {
+    config.value.monitorIndex = index;
+    saveConfig();
+  }
+
   // Load on init
   onMounted(() => {
     loadConfig();
@@ -88,5 +95,6 @@ export function useConfig() {
     setCalcSettings,
     setWindowPosition,
     setColorTheme,
+    setMonitorIndex,
   };
 }

@@ -47,7 +47,13 @@
             </svg>
           </button>
 
-          <h1 class="title">𝐐𝐮𝐚𝐧𝐭𝐇𝐔𝐃</h1>
+          <h1
+            class="title"
+            @click="activeModule = 'home'"
+            style="cursor: pointer"
+          >
+            𝐐𝐮𝐚𝐧𝐭𝐇𝐔𝐃
+          </h1>
 
           <!-- Right side: Pin when left, Burger when right -->
           <button
@@ -83,22 +89,24 @@
 
         <!-- Home Module -->
         <div v-if="activeModule === 'home'" class="module-content">
-          <div class="card">
-            <h2 style="margin-bottom: 16px">🏠 Home</h2>
-            <p style="color: var(--text-secondary); text-align: center">
-              Coming soon...
-            </p>
+          <div class="home-hub">
+            <div class="hub-grid">
+              <button
+                v-for="mod in homeModules"
+                :key="mod.id"
+                class="hub-card"
+                @click="activeModule = mod.id"
+              >
+                <span class="hub-icon" v-html="mod.icon"></span>
+                <span class="hub-label">{{ mod.label }}</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Notes Module -->
         <div v-else-if="activeModule === 'notes'" class="module-content">
-          <div class="card">
-            <h2 style="margin-bottom: 16px">📝 Notes</h2>
-            <p style="color: var(--text-secondary); text-align: center">
-              Coming soon...
-            </p>
-          </div>
+          <NotesModule />
         </div>
 
         <!-- Calculator Module -->
@@ -213,6 +221,24 @@
             <!-- Version -->
             <div class="version-badge">v{{ appVersion }}</div>
 
+            <!-- Monitor Selection -->
+            <div class="setting-group">
+              <label class="setting-label">Monitor</label>
+              <select
+                class="monitor-select"
+                :value="config.monitorIndex"
+                @change="handleMonitorChange($event)"
+              >
+                <option
+                  v-for="monitor in availableMonitors"
+                  :key="monitor.index"
+                  :value="monitor.index"
+                >
+                  {{ monitor.name }}
+                </option>
+              </select>
+            </div>
+
             <!-- Window Position -->
             <div class="setting-group">
               <label class="setting-label">Window Position</label>
@@ -280,11 +306,15 @@
           </div>
         </div>
 
+        <!-- Todo Module -->
+        <div v-else-if="activeModule === 'todos'" class="module-content">
+          <TodoModule />
+        </div>
+
         <!-- Placeholder Modules -->
         <div
           v-else-if="
             [
-              'placeholder1',
               'placeholder2',
               'placeholder3',
               'placeholder4',
@@ -344,12 +374,70 @@ const {
   setScanRegion,
   setWindowPosition,
   setColorTheme,
+  setMonitorIndex,
 } = useConfig();
 
 const isPinned = ref(false);
 const isTucked = ref(true);
 const activeModule = ref("home");
+
+const homeModules = [
+  {
+    id: "notes",
+    label: "Notes",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  },
+  {
+    id: "todos",
+    label: "Todo List",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+  },
+  {
+    id: "calculator",
+    label: "Calculator",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>',
+  },
+  {
+    id: "placeholder2",
+    label: "Placeholder 2",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+  },
+  {
+    id: "placeholder3",
+    label: "Placeholder 3",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',
+  },
+  {
+    id: "placeholder4",
+    label: "Placeholder 4",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>',
+  },
+  {
+    id: "placeholder5",
+    label: "Placeholder 5",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',
+  },
+  {
+    id: "placeholder6",
+    label: "Placeholder 6",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+  },
+  {
+    id: "placeholder7",
+    label: "Placeholder 7",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+  },
+];
 const windowPosition = computed(() => config.value.windowPosition || "left");
+const availableMonitors = ref<
+  Array<{
+    index: number;
+    name: string;
+    width: number;
+    height: number;
+    is_primary: boolean;
+  }>
+>([]);
 let invoke: any = null;
 
 // Check if running in Tauri
@@ -367,10 +455,30 @@ onMounted(async () => {
   if (isTauri) {
     const core = await import("@tauri-apps/api/core");
     invoke = core.invoke;
-    await invoke("setup_window_size");
+
+    // Load available monitors
+    try {
+      availableMonitors.value = await invoke("get_available_monitors");
+    } catch (e) {
+      console.warn("Failed to load monitors:", e);
+      availableMonitors.value = [
+        {
+          index: 0,
+          name: "Primary Monitor",
+          width: 1920,
+          height: 1080,
+          is_primary: true,
+        },
+      ];
+    }
+
+    await invoke("setup_window_size", {
+      monitorIndex: config.value.monitorIndex,
+    });
     // Start tucked
     await invoke("tuck_window", {
       position: config.value.windowPosition || "left",
+      monitorIndex: config.value.monitorIndex,
     });
     try {
       const { register } = await import("@tauri-apps/plugin-global-shortcut");
@@ -383,7 +491,10 @@ onMounted(async () => {
 
 async function onMouseEnter() {
   if (isTauri && invoke) {
-    await invoke("show_window", { position: windowPosition.value });
+    await invoke("show_window", {
+      position: windowPosition.value,
+      monitorIndex: config.value.monitorIndex,
+    });
   }
   isTucked.value = false;
 }
@@ -391,7 +502,10 @@ async function onMouseEnter() {
 async function onMouseLeave() {
   if (isPinned.value) return;
   if (isTauri && invoke) {
-    await invoke("tuck_window", { position: windowPosition.value });
+    await invoke("tuck_window", {
+      position: windowPosition.value,
+      monitorIndex: config.value.monitorIndex,
+    });
   }
   isTucked.value = true;
 }
@@ -399,7 +513,10 @@ async function onMouseLeave() {
 async function togglePin() {
   isPinned.value = !isPinned.value;
   if (isPinned.value && isTauri && invoke) {
-    await invoke("show_window", { position: windowPosition.value });
+    await invoke("show_window", {
+      position: windowPosition.value,
+      monitorIndex: config.value.monitorIndex,
+    });
     isTucked.value = false;
   }
 }
@@ -497,7 +614,45 @@ async function copyToClipboard(value: string) {
 async function handlePositionChange(position: "left" | "right") {
   setWindowPosition(position);
   if (isTauri && invoke) {
-    await invoke("set_window_position", { position });
+    await invoke("set_window_position", {
+      position,
+      monitorIndex: config.value.monitorIndex,
+    });
+  }
+}
+
+async function handleMonitorChange(event: Event) {
+  const target = event.target as HTMLSelectElement;
+  const monitorIndex = parseInt(target.value);
+  setMonitorIndex(monitorIndex);
+
+  if (isTauri && invoke) {
+    const wasTucked = isTucked.value;
+
+    // Force tuck before switching to prevent white flash
+    if (!wasTucked) {
+      await invoke("tuck_window", {
+        position: windowPosition.value,
+        monitorIndex: config.value.monitorIndex, // Use current monitor for tuck
+      });
+      isTucked.value = true;
+    }
+
+    // Reposition window to the new monitor (already tucked)
+    await invoke("setup_window_size", { monitorIndex });
+    await invoke("tuck_window", {
+      position: windowPosition.value,
+      monitorIndex,
+    });
+
+    // If it wasn't tucked before, show it again on the new monitor
+    if (!wasTucked) {
+      await invoke("show_window", {
+        position: windowPosition.value,
+        monitorIndex,
+      });
+      isTucked.value = false;
+    }
   }
 }
 
@@ -711,5 +866,77 @@ function applyTheme() {
 .option-btn:hover:not(.active) {
   background: var(--bg-secondary);
   border-color: var(--accent-blue);
+}
+
+.monitor-select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.monitor-select:hover {
+  border-color: var(--accent-blue);
+  background: var(--bg-secondary);
+}
+
+.monitor-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background: var(--bg-secondary);
+}
+
+.monitor-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Home Hub */
+.home-hub {
+  padding: 4px 0;
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.hub-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 20px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--text-secondary);
+}
+
+.hub-card:hover {
+  border-color: var(--accent-blue);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.hub-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hub-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 </style>

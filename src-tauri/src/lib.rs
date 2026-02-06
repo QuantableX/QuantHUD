@@ -37,10 +37,16 @@ const BORDER_OFFSET_Y: i32 = 8; // Top invisible border
 
 /// Tuck window - shrink to trigger zone width only
 #[tauri::command]
-async fn tuck_window(window: WebviewWindow, position: String) -> Result<(), String> {
-    let monitor = window.current_monitor()
-        .map_err(|e| e.to_string())?
-        .ok_or("No monitor found")?;
+async fn tuck_window(window: WebviewWindow, position: String, monitor_index: Option<usize>) -> Result<(), String> {
+    let app = window.app_handle();
+    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
+    let monitor = if let Some(idx) = monitor_index {
+        monitors.into_iter().nth(idx).ok_or("Monitor index out of range")?
+    } else {
+        window.current_monitor()
+            .map_err(|e| e.to_string())?
+            .ok_or("No monitor found")?
+    };
 
     let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
@@ -65,7 +71,12 @@ async fn tuck_window(window: WebviewWindow, position: String) -> Result<(), Stri
     } else {
         -border_x
     };
-    window.set_position(PhysicalPosition::new(x, -border_y))
+
+    // Get monitor position offset
+    let monitor_x = monitor.position().x;
+    let monitor_y = monitor.position().y;
+
+    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y - border_y))
         .map_err(|e| e.to_string())?;
 
     Ok(())
@@ -73,10 +84,16 @@ async fn tuck_window(window: WebviewWindow, position: String) -> Result<(), Stri
 
 /// Show window - expand to full width
 #[tauri::command]
-async fn show_window(window: WebviewWindow, position: String) -> Result<(), String> {
-    let monitor = window.current_monitor()
-        .map_err(|e| e.to_string())?
-        .ok_or("No monitor found")?;
+async fn show_window(window: WebviewWindow, position: String, monitor_index: Option<usize>) -> Result<(), String> {
+    let app = window.app_handle();
+    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
+    let monitor = if let Some(idx) = monitor_index {
+        monitors.into_iter().nth(idx).ok_or("Monitor index out of range")?
+    } else {
+        window.current_monitor()
+            .map_err(|e| e.to_string())?
+            .ok_or("No monitor found")?
+    };
 
     let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
@@ -101,7 +118,12 @@ async fn show_window(window: WebviewWindow, position: String) -> Result<(), Stri
     } else {
         -border_x
     };
-    window.set_position(PhysicalPosition::new(x, -border_y))
+
+    // Get monitor position offset
+    let monitor_x = monitor.position().x;
+    let monitor_y = monitor.position().y;
+
+    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y - border_y))
         .map_err(|e| e.to_string())?;
 
     Ok(())
@@ -120,13 +142,19 @@ async fn is_window_tucked(window: WebviewWindow) -> Result<bool, String> {
 
 /// Setup window for full height (call on startup)
 #[tauri::command]
-async fn setup_window_size(window: WebviewWindow) -> Result<(), String> {
+async fn setup_window_size(window: WebviewWindow, monitor_index: Option<usize>) -> Result<(), String> {
     use tauri::PhysicalSize;
 
     // Get monitor work area
-    let monitor = window.current_monitor()
-        .map_err(|e| e.to_string())?
-        .ok_or("No monitor found")?;
+    let app = window.app_handle();
+    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
+    let monitor = if let Some(idx) = monitor_index {
+        monitors.into_iter().nth(idx).ok_or("Monitor index out of range")?
+    } else {
+        window.current_monitor()
+            .map_err(|e| e.to_string())?
+            .ok_or("No monitor found")?
+    };
 
     let scale_factor = monitor.scale_factor();
     let screen_height = monitor.size().height as i32;
@@ -143,7 +171,11 @@ async fn setup_window_size(window: WebviewWindow) -> Result<(), String> {
     let border_x = (BORDER_OFFSET_X as f64 * scale_factor) as i32;
     let border_y = (BORDER_OFFSET_Y as f64 * scale_factor) as i32;
 
-    window.set_position(PhysicalPosition::new(-border_x, -border_y))
+    // Get monitor position offset
+    let monitor_x = monitor.position().x;
+    let monitor_y = monitor.position().y;
+
+    window.set_position(PhysicalPosition::new(monitor_x - border_x, monitor_y - border_y))
         .map_err(|e| e.to_string())?;
 
     window.show().map_err(|e| e.to_string())?;
@@ -153,10 +185,16 @@ async fn setup_window_size(window: WebviewWindow) -> Result<(), String> {
 
 /// Set window position to left or right edge
 #[tauri::command]
-async fn set_window_position(window: WebviewWindow, position: String) -> Result<(), String> {
-    let monitor = window.current_monitor()
-        .map_err(|e| e.to_string())?
-        .ok_or("No monitor found")?;
+async fn set_window_position(window: WebviewWindow, position: String, monitor_index: Option<usize>) -> Result<(), String> {
+    let app = window.app_handle();
+    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
+    let monitor = if let Some(idx) = monitor_index {
+        monitors.into_iter().nth(idx).ok_or("Monitor index out of range")?
+    } else {
+        window.current_monitor()
+            .map_err(|e| e.to_string())?
+            .ok_or("No monitor found")?
+    };
 
     let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
@@ -172,10 +210,54 @@ async fn set_window_position(window: WebviewWindow, position: String) -> Result<
         -border_x
     };
 
-    window.set_position(PhysicalPosition::new(x, -border_y))
+    // Get monitor position offset
+    let monitor_x = monitor.position().x;
+    let monitor_y = monitor.position().y;
+
+    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y - border_y))
         .map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+#[derive(Debug, Serialize)]
+pub struct MonitorInfo {
+    pub index: usize,
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub is_primary: bool,
+}
+
+/// Get list of available monitors
+#[tauri::command]
+async fn get_available_monitors(app: tauri::AppHandle) -> Result<Vec<MonitorInfo>, String> {
+    let monitors = app.available_monitors()
+        .map_err(|e| e.to_string())?;
+
+    let monitor_list: Vec<MonitorInfo> = monitors
+        .into_iter()
+        .enumerate()
+        .map(|(index, monitor)| {
+            let size = monitor.size();
+            let _raw_name = monitor.name()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| format!("Display {}", index + 1));
+
+            // Use a simple sequential "Display N" format with resolution
+            let display_name = format!("Display {} ({}×{})", index + 1, size.width, size.height);
+
+            MonitorInfo {
+                index,
+                name: display_name,
+                width: size.width,
+                height: size.height,
+                is_primary: index == 0, // First monitor is typically primary
+            }
+        })
+        .collect();
+
+    Ok(monitor_list)
 }
 
 #[derive(Debug, Serialize)]
@@ -287,6 +369,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             capture_screen,
             get_cursor_position,
+            get_available_monitors,
             load_config,
             save_config,
             tuck_window,
