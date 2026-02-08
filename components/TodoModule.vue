@@ -161,16 +161,12 @@
               </span>
               <button
                 class="ctrl-btn ctrl-expand"
-                @click="toggleTaskExpand(task.id)"
-                :title="
-                  expandedTasks.has(task.id)
-                    ? 'Collapse subtasks'
-                    : 'Expand subtasks'
-                "
+                @click="toggleTaskExpand(section.id, task.id)"
+                :title="task.expanded ? 'Collapse subtasks' : 'Expand subtasks'"
               >
                 <span
                   class="collapse-icon"
-                  :class="{ collapsed: !expandedTasks.has(task.id) }"
+                  :class="{ collapsed: !task.expanded }"
                   >▼</span
                 >
               </button>
@@ -193,7 +189,7 @@
 
           <!-- Subtasks -->
           <div
-            v-if="expandedTasks.has(task.id)"
+            v-if="task.expanded"
             class="subtasks-list"
             @dragover.prevent.stop="
               onSubtaskListDragOver(
@@ -318,6 +314,7 @@ const {
   moveTaskToSectionAt,
   reorderSubtask,
   moveSubtaskToTask,
+  toggleTaskExpand,
 } = useTodos();
 
 const editingSectionId = ref<string | null>(null);
@@ -327,7 +324,6 @@ const sectionInputRef = ref<HTMLInputElement[] | null>(null);
 const taskInputRef = ref<HTMLInputElement[] | null>(null);
 const subtaskInputRef = ref<HTMLInputElement[] | null>(null);
 const moduleRef = ref<HTMLElement | null>(null);
-const expandedTasks = ref<Set<string>>(new Set());
 
 // --- Drag state ---
 const dragType = ref<"section" | "task" | "subtask" | null>(null);
@@ -352,14 +348,6 @@ onUnmounted(() => {
   document.removeEventListener("dragover", onDocSectionDragOver);
   document.removeEventListener("drop", onDocSectionDrop);
 });
-
-function toggleTaskExpand(taskId: string) {
-  if (expandedTasks.value.has(taskId)) {
-    expandedTasks.value.delete(taskId);
-  } else {
-    expandedTasks.value.add(taskId);
-  }
-}
 
 function getSectionProgress(section: TodoSection): string {
   if (section.tasks.length === 0) return "";

@@ -3,6 +3,7 @@ import type { CalculatorInputs } from "./useCalculator";
 export type WindowPosition = "left" | "right";
 export type ColorTheme = "default" | "monochrome";
 export type TriggerStyle = "column" | "halfcircle";
+export type ActivationMode = "hover" | "click";
 export type DisplayMode = "basic" | "pro";
 
 export interface AppConfig {
@@ -11,6 +12,7 @@ export interface AppConfig {
   windowPosition: WindowPosition;
   colorTheme: ColorTheme;
   triggerStyle: TriggerStyle;
+  activationMode: ActivationMode;
   monitorIndex: number;
   displayMode: DisplayMode;
 }
@@ -24,6 +26,7 @@ export function useConfig() {
     windowPosition: "left",
     colorTheme: "default",
     triggerStyle: "halfcircle",
+    activationMode: "hover",
     monitorIndex: 0,
     displayMode: "basic",
   });
@@ -88,6 +91,11 @@ export function useConfig() {
     saveConfig();
   }
 
+  function setActivationMode(mode: ActivationMode) {
+    config.value.activationMode = mode;
+    saveConfig();
+  }
+
   function setMonitorIndex(index: number) {
     config.value.monitorIndex = index;
     saveConfig();
@@ -112,6 +120,7 @@ export function useConfig() {
     setWindowPosition,
     setColorTheme,
     setTriggerStyle,
+    setActivationMode,
     setMonitorIndex,
     setDisplayMode,
   };

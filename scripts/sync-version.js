@@ -47,4 +47,4 @@ cargoToml = cargoToml.replace(
 writeFileSync(cargoTomlPath, cargoToml);
 console.log(`✓ Cargo.toml: ${oldVersion} → ${newVersion}`);
 
-console.log(`\n🎉 Version synced to ${newVersion}`);
+console.log(`\n* Version synced to ${newVersion}`);

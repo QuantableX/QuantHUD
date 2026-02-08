@@ -8,6 +8,7 @@ export interface Task {
   id: string;
   title: string;
   done: boolean;
+  expanded: boolean;
   subtasks: SubTask[];
 }
 
@@ -38,14 +39,24 @@ export function useTodos() {
           const config = JSON.parse(saved);
           if (config._todos) {
             sections.value = config._todos;
+            migrateTasks();
             return;
           }
         }
       }
       const saved = localStorage.getItem(TODOS_KEY);
       if (saved) sections.value = JSON.parse(saved);
+      migrateTasks();
     } catch (e) {
       console.warn("Failed to load todos:", e);
+    }
+  }
+
+  function migrateTasks() {
+    for (const section of sections.value) {
+      for (const task of section.tasks) {
+        if (task.expanded === undefined) task.expanded = false;
+      }
     }
   }
 
@@ -104,7 +115,13 @@ export function useTodos() {
   function addTask(sectionId: string, title = "New Task") {
     const s = sections.value.find((s) => s.id === sectionId);
     if (s) {
-      s.tasks.push({ id: generateId(), title, done: false, subtasks: [] });
+      s.tasks.push({
+        id: generateId(),
+        title,
+        done: false,
+        expanded: false,
+        subtasks: [],
+      });
       saveTodos();
     }
   }
@@ -256,6 +273,16 @@ export function useTodos() {
     saveTodos();
   }
 
+  function toggleTaskExpand(sectionId: string, taskId: string) {
+    const t = sections.value
+      .find((s) => s.id === sectionId)
+      ?.tasks.find((t) => t.id === taskId);
+    if (t) {
+      t.expanded = !t.expanded;
+      saveTodos();
+    }
+  }
+
   onMounted(() => {
     loadTodos();
   });
@@ -279,5 +306,6 @@ export function useTodos() {
     moveTaskToSectionAt,
     reorderSubtask,
     moveSubtaskToTask,
+    toggleTaskExpand,
   };
 }

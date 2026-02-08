@@ -7,16 +7,24 @@
       'trigger-halfcircle': triggerStyle === 'halfcircle',
       'trigger-column': triggerStyle === 'column',
     }"
-    @mouseenter="onMouseEnter"
+    @mouseenter="activationMode === 'hover' ? onMouseEnter() : undefined"
     @mouseleave="onMouseLeave"
   >
     <!-- Trigger zone (left for right-position) -->
     <div
       v-if="windowPosition === 'right'"
       class="trigger-zone trigger-left"
-      @mouseenter="triggerStyle === 'column' ? onMouseEnter() : undefined"
+      @mouseenter="
+        activationMode === 'hover' && triggerStyle === 'column'
+          ? onMouseEnter()
+          : undefined
+      "
     >
-      <div class="trigger-tab" @mouseenter="onMouseEnter">
+      <div
+        class="trigger-tab"
+        @mouseenter="activationMode === 'hover' ? onMouseEnter() : undefined"
+        @click="activationMode === 'click' ? onTriggerClick() : undefined"
+      >
         <span class="trigger-arrow">{{ isTucked ? "◀" : "▶" }}</span>
       </div>
     </div>
@@ -59,13 +67,13 @@
             </svg>
           </button>
 
-          <h1
-            class="title"
+          <img
+            src="/QuantHUD.png"
+            alt="QuantHUD"
+            class="title-logo"
             @click="activeModule = 'home'"
             style="cursor: pointer"
-          >
-            𝐐𝐮𝐚𝐧𝐭𝐇𝐔𝐃
-          </h1>
+          />
 
           <!-- Right side: Pin when left, Burger when right -->
           <button
@@ -172,8 +180,8 @@
           <NotesModule />
         </div>
 
-        <!-- Calculator Module -->
-        <div v-else-if="activeModule === 'calculator'">
+        <!-- Position Size Calculator Module -->
+        <div v-else-if="activeModule === 'position-calc'">
           <!-- Capture Controls -->
           <div class="capture-row">
             <button
@@ -392,17 +400,53 @@
               </div>
             </div>
 
+            <!-- Activation Mode -->
+            <div class="setting-group">
+              <label class="setting-label">Activation Mode</label>
+              <div class="setting-options">
+                <button
+                  class="btn option-btn"
+                  :class="{
+                    active:
+                      config.activationMode === 'hover' ||
+                      !config.activationMode,
+                  }"
+                  @click="handleActivationModeChange('hover')"
+                >
+                  ☛ Hover
+                </button>
+                <button
+                  class="btn option-btn"
+                  :class="{ active: config.activationMode === 'click' }"
+                  @click="handleActivationModeChange('click')"
+                >
+                  ✦ Click
+                </button>
+              </div>
+            </div>
+
             <!-- Display Mode -->
             <div class="setting-group">
               <label class="setting-label">Display Mode</label>
-              <select
-                class="monitor-select"
-                :value="config.displayMode || 'basic'"
-                @change="handleDisplayModeChange($event)"
-              >
-                <option value="basic">Basic</option>
-                <option value="pro">Pro</option>
-              </select>
+              <div class="setting-options">
+                <button
+                  class="btn option-btn"
+                  :class="{
+                    active:
+                      config.displayMode === 'basic' || !config.displayMode,
+                  }"
+                  @click="handleDisplayModeChange('basic')"
+                >
+                  Basic
+                </button>
+                <button
+                  class="btn option-btn"
+                  :class="{ active: config.displayMode === 'pro' }"
+                  @click="handleDisplayModeChange('pro')"
+                >
+                  Pro
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -412,26 +456,37 @@
           <TodoModule />
         </div>
 
-        <!-- Placeholder Modules -->
+        <!-- World Clock Module -->
+        <div v-else-if="activeModule === 'worldclock'" class="module-content">
+          <WorldClockModule />
+        </div>
+
+        <!-- Calendar Module -->
+        <div v-else-if="activeModule === 'calendar'" class="module-content">
+          <CalendarModule />
+        </div>
+
+        <!-- General Calculator Module -->
+        <div v-else-if="activeModule === 'gen-calc'" class="module-content">
+          <GeneralCalcModule />
+        </div>
+
+        <!-- Color Picker Module -->
+        <div v-else-if="activeModule === 'colorpicker'" class="module-content">
+          <ColorPickerModule />
+        </div>
+
+        <!-- Clipboard History Module -->
+        <div v-else-if="activeModule === 'clipboard'" class="module-content">
+          <ClipboardHistoryModule />
+        </div>
+
+        <!-- Screenshot History Module -->
         <div
-          v-else-if="
-            [
-              'placeholder2',
-              'placeholder3',
-              'placeholder4',
-              'placeholder5',
-              'placeholder6',
-              'placeholder7',
-            ].includes(activeModule)
-          "
-          class="module-content"
+          v-else-if="activeModule === 'screenshots'"
+          class="module-content module-content--fill"
         >
-          <div class="card">
-            <h2 style="margin-bottom: 16px">📦 {{ activeModule }}</h2>
-            <p style="color: var(--text-secondary); text-align: center">
-              Coming soon...
-            </p>
-          </div>
+          <ScreenshotHistoryModule />
         </div>
 
         <!-- Fallback for unknown modules -->
@@ -450,9 +505,17 @@
     <div
       v-if="windowPosition === 'left'"
       class="trigger-zone trigger-right"
-      @mouseenter="triggerStyle === 'column' ? onMouseEnter() : undefined"
+      @mouseenter="
+        activationMode === 'hover' && triggerStyle === 'column'
+          ? onMouseEnter()
+          : undefined
+      "
     >
-      <div class="trigger-tab" @mouseenter="onMouseEnter">
+      <div
+        class="trigger-tab"
+        @mouseenter="activationMode === 'hover' ? onMouseEnter() : undefined"
+        @click="activationMode === 'click' ? onTriggerClick() : undefined"
+      >
         <span class="trigger-arrow">{{ isTucked ? "▶" : "◀" }}</span>
       </div>
     </div>
@@ -482,6 +545,7 @@ const {
   setWindowPosition,
   setColorTheme,
   setTriggerStyle,
+  setActivationMode,
   setMonitorIndex,
   setDisplayMode,
 } = useConfig();
@@ -493,7 +557,16 @@ const homeGeneralCollapsed = ref(false);
 const homeAdvancedCollapsed = ref(false);
 
 const displayMode = computed(() => config.value.displayMode || "basic");
-const generalHomeIds = ["notes", "todos"];
+const generalHomeIds = [
+  "notes",
+  "todos",
+  "worldclock",
+  "calendar",
+  "gen-calc",
+  "colorpicker",
+  "clipboard",
+  "screenshots",
+];
 
 const homeModules = [
   {
@@ -507,39 +580,39 @@ const homeModules = [
     icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
   },
   {
-    id: "calculator",
+    id: "worldclock",
+    label: "Clock",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  },
+  {
+    id: "calendar",
+    label: "Calendar",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  },
+  {
+    id: "gen-calc",
     label: "Calculator",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/></svg>',
+  },
+  {
+    id: "colorpicker",
+    label: "Color Picker",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c1.1 0 2-.9 2-2v-.7c0-.5-.2-1-.5-1.3-.3-.3-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3c3 0 5.7-2.5 5.7-5.7C23 5.1 18.1 2 12 2z"/><circle cx="8" cy="10" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="7" r="1.5" fill="currentColor" stroke="none"/><circle cx="16" cy="10" r="1.5" fill="currentColor" stroke="none"/><circle cx="10" cy="14" r="1.5" fill="currentColor" stroke="none"/></svg>',
+  },
+  {
+    id: "clipboard",
+    label: "Clipboard",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
+  },
+  {
+    id: "screenshots",
+    label: "Screenshots",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+  },
+  {
+    id: "position-calc",
+    label: "Position Sizer",
     icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>',
-  },
-  {
-    id: "placeholder2",
-    label: "Placeholder 2",
-    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
-  },
-  {
-    id: "placeholder3",
-    label: "Placeholder 3",
-    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',
-  },
-  {
-    id: "placeholder4",
-    label: "Placeholder 4",
-    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>',
-  },
-  {
-    id: "placeholder5",
-    label: "Placeholder 5",
-    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',
-  },
-  {
-    id: "placeholder6",
-    label: "Placeholder 6",
-    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
-  },
-  {
-    id: "placeholder7",
-    label: "Placeholder 7",
-    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
   },
 ];
 
@@ -552,6 +625,7 @@ const homeAdvancedModules = computed(() =>
 
 const windowPosition = computed(() => config.value.windowPosition || "left");
 const triggerStyle = computed(() => config.value.triggerStyle || "halfcircle");
+const activationMode = computed(() => config.value.activationMode || "hover");
 const availableMonitors = ref<
   Array<{
     index: number;
@@ -624,6 +698,8 @@ async function onMouseEnter() {
 
 async function onMouseLeave() {
   if (isPinned.value) return;
+  // In click mode, don't auto-tuck on mouse leave
+  if (activationMode.value === "click") return;
   if (isTauri && invoke) {
     await invoke("tuck_window", {
       position: windowPosition.value,
@@ -631,6 +707,21 @@ async function onMouseLeave() {
     });
   }
   isTucked.value = true;
+}
+
+async function onTriggerClick() {
+  if (isTucked.value) {
+    await onMouseEnter();
+  } else {
+    if (isPinned.value) return;
+    if (isTauri && invoke) {
+      await invoke("tuck_window", {
+        position: windowPosition.value,
+        monitorIndex: config.value.monitorIndex,
+      });
+    }
+    isTucked.value = true;
+  }
 }
 
 async function togglePin() {
@@ -788,9 +879,14 @@ function handleTriggerStyleChange(style: "column" | "halfcircle") {
   setTriggerStyle(style);
 }
 
-function handleDisplayModeChange(event: Event) {
-  const target = event.target as HTMLSelectElement;
-  setDisplayMode(target.value as "basic" | "pro");
+function handleActivationModeChange(mode: "hover" | "click") {
+  setActivationMode(mode);
+  // If switching to click mode while untucked, stay untucked
+  // If switching to hover mode while untucked, stay untucked
+}
+
+function handleDisplayModeChange(mode: "basic" | "pro") {
+  setDisplayMode(mode);
 }
 
 function applyTheme() {
@@ -917,6 +1013,8 @@ function applyTheme() {
   flex: 1;
   overflow-y: auto;
   padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -938,12 +1036,12 @@ function applyTheme() {
   background: var(--accent-green-dim);
 }
 
-.title {
-  font-size: 22px;
-  font-weight: 900;
-  color: white;
-  letter-spacing: 1px;
-  text-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+.title-logo {
+  height: 22px;
+  width: auto;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .capture-row {
@@ -999,6 +1097,13 @@ function applyTheme() {
 
 .module-content {
   padding: 8px 0;
+}
+
+.module-content--fill {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .module-content .card {

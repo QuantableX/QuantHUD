@@ -21,6 +21,10 @@ export default defineNuxtConfig({
     },
   },
 
+  experimental: {
+    appManifest: false,
+  },
+
   css: ["~/assets/css/main.css"],
 
   vite: {

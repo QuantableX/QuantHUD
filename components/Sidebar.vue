@@ -45,10 +45,10 @@
       </div>
 
       <div class="sidebar-tabs">
-        <!-- Basic mode: only general modules -->
+        <!-- Basic mode: only general modules (with home) -->
         <template v-if="displayMode === 'basic'">
           <button
-            v-for="module in generalModules"
+            v-for="module in [homeModule, ...generalModules]"
             :key="module.id"
             class="tab-btn"
             :class="{ active: activeModule === module.id }"
@@ -61,6 +61,16 @@
 
         <!-- Pro mode: sections with collapsible dividers -->
         <template v-else>
+          <!-- Home button above sections -->
+          <button
+            class="tab-btn"
+            :class="{ active: activeModule === 'home' }"
+            @click="selectModule('home')"
+          >
+            <span class="tab-icon" v-html="homeModule.icon"></span>
+            <span class="tab-label">{{ homeModule.label }}</span>
+          </button>
+
           <div
             class="section-divider"
             @click="generalCollapsed = !generalCollapsed"
@@ -159,7 +169,16 @@ const emit = defineEmits<{
 
 const isRight = computed(() => props.windowPosition === "right");
 
-const generalIds = ["home", "notes", "todos"];
+const generalIds = [
+  "notes",
+  "todos",
+  "worldclock",
+  "calendar",
+  "gen-calc",
+  "colorpicker",
+  "clipboard",
+  "screenshots",
+];
 
 const allModules = [
   {
@@ -178,47 +197,48 @@ const allModules = [
     icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
   },
   {
-    id: "calculator",
-    label: "Calculator",
+    id: "position-calc",
+    label: "Position Sizer",
     icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>',
   },
   {
-    id: "placeholder2",
-    label: "Placeholder 2",
-    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+    id: "worldclock",
+    label: "Clock",
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
   },
   {
-    id: "placeholder3",
-    label: "Placeholder 3",
-    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',
+    id: "calendar",
+    label: "Calendar",
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
   },
   {
-    id: "placeholder4",
-    label: "Placeholder 4",
-    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>',
+    id: "gen-calc",
+    label: "Calculator",
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/></svg>',
   },
   {
-    id: "placeholder5",
-    label: "Placeholder 5",
-    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',
+    id: "colorpicker",
+    label: "Color Picker",
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c1.1 0 2-.9 2-2v-.7c0-.5-.2-1-.5-1.3-.3-.3-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3c3 0 5.7-2.5 5.7-5.7C23 5.1 18.1 2 12 2z"/><circle cx="8" cy="10" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="7" r="1.5" fill="currentColor" stroke="none"/><circle cx="16" cy="10" r="1.5" fill="currentColor" stroke="none"/><circle cx="10" cy="14" r="1.5" fill="currentColor" stroke="none"/></svg>',
   },
   {
-    id: "placeholder6",
-    label: "Placeholder 6",
-    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+    id: "clipboard",
+    label: "Clipboard",
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
   },
   {
-    id: "placeholder7",
-    label: "Placeholder 7",
-    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+    id: "screenshots",
+    label: "Screenshots",
+    icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
   },
 ];
 
+const homeModule = computed(() => allModules.find((m) => m.id === "home")!);
 const generalModules = computed(() =>
   allModules.filter((m) => generalIds.includes(m.id)),
 );
 const advancedModules = computed(() =>
-  allModules.filter((m) => !generalIds.includes(m.id)),
+  allModules.filter((m) => m.id !== "home" && !generalIds.includes(m.id)),
 );
 
 function toggleSidebar() {

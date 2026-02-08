@@ -2,7 +2,12 @@
   "$schema": "https://schema.tauri.app/config/2/capability",
   "identifier": "default",
   "description": "Default capabilities for QuantHUD",
-  "windows": ["main"],
+  "windows": [
+    "main",
+    "region-selector",
+    "color-picker-overlay",
+    "screenshot-preview"
+  ],
   "permissions": [
     "core:default",
     "shell:allow-open",

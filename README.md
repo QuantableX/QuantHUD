@@ -1,6 +1,6 @@
 # QuantHUD
 
-**Fibonacci Level Extractor for Trading** - A desktop app that captures TradingView screenshots, extracts Fibonacci levels via OCR, and calculates position sizing.
+**A modular desktop HUD for traders and power users** — always-on-top sidebar that slides in from the screen edge, packed with productivity tools and trading utilities.
 
 Built with **Tauri 2** (Rust backend) + **Nuxt 3** (Vue frontend).
 
@@ -8,13 +8,27 @@ Built with **Tauri 2** (Rust backend) + **Nuxt 3** (Vue frontend).
 
 ## Features
 
-- 📸 **Screen Capture** - Capture TradingView with F9 hotkey
-- 🔍 **OCR Extraction** - Detects Fibonacci levels (-0.2, 0, 0.25, 0.5, 0.75, 1, 1.2)
-- 📈 **Long/Short Toggle** - Auto-assigns Entry, TP, SL based on direction
-- 🧮 **Position Calculator** - Calculates size, profit, loss, R:R, breakeven
-- 📋 **Quick Copy** - Copy any value to clipboard
-- 🔲 **Region Selection** - Custom OCR scan area
-- 📌 **Pin/Auto-hide** - Slides in/out from screen edge
+### General Modules
+
+- 📝 **Notes** - Quick scratchpad for jotting things down
+- ✅ **Todo List** - Task management with checkable items
+- ⏰ **World Clock** - Track multiple time zones at a glance
+- 📅 **Calendar** - Date reference and planning
+- 🧮 **Calculator** - General-purpose calculator
+- 🎨 **Color Picker** - Pick and copy colors from screen
+- 📋 **Clipboard History** - Browse and reuse recent clipboard entries
+- 📷 **Screenshots** - Capture and browse screenshot history
+
+### Advanced Modules
+
+- 📈 **Position Sizer** - Fibonacci-based position calculator with OCR screen capture, long/short toggle, and R:R analysis
+
+> More advanced modules will follow.
+
+### App Behavior
+
+- 📌 **Pin / Auto-hide** - Slides in and out from the screen edge
+- ⚙️ **Settings** - Window position (left/right), monitor selection, color themes, trigger style, activation mode, and Basic/Pro display modes
 
 ---
 
@@ -24,7 +38,7 @@ Built with **Tauri 2** (Rust backend) + **Nuxt 3** (Vue frontend).
 
 1. **Node.js 18+** - [Download](https://nodejs.org/)
 2. **Rust** - [Install via rustup](https://rustup.rs/)
-3. **Tesseract OCR** - Required for text recognition:
+3. **Tesseract OCR** - Required for Position Sizer OCR:
    - **Windows**: Download installer from [UB-Mannheim](https://github.com/UB-Mannheim/tesseract/wiki)
    - Set `TESSDATA_PREFIX` env variable to Tesseract's tessdata folder
 4. **Visual Studio Build Tools** (Windows) - [Download](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
@@ -42,10 +56,7 @@ cargo --version
 
 ## Setup
 
-### 1. Install Dependencies
-
 ```bash
-
 # Install Node dependencies
 npm install
 
@@ -71,7 +82,7 @@ This starts:
 npm run dev
 ```
 
-> Note: Capture/OCR features only work in the Tauri app, not in browser.
+> Note: Capture, OCR, and clipboard features only work in the Tauri app, not in browser.
 
 ---
 
@@ -104,26 +115,45 @@ npm run tauri:build -- --target x86_64-pc-windows-msvc
 
 ```
 QuantHUD/
-├── assets/css/          # Global styles
-├── components/          # Vue components
-│   ├── LevelsCard.vue   # Entry/TP/SL inputs
-│   ├── CalculatorCard.vue
-│   └── ResultsCard.vue
-├── composables/         # Vue composables
-│   ├── useCalculator.ts # Position calculation logic
-│   ├── useConfig.ts     # Settings persistence
-│   ├── useFibExtractor.ts
-│   └── useAutoHide.ts
-├── layouts/
+├── assets/css/              # Global styles
+├── components/              # Vue components
+│   ├── Sidebar.vue          # Module navigation sidebar
+│   ├── SettingsModal.vue    # App settings
+│   ├── NotesModule.vue      # Notes scratchpad
+│   ├── TodoModule.vue       # Todo list
+│   ├── WorldClockModule.vue # Multi-timezone clock
+│   ├── CalendarModule.vue   # Calendar
+│   ├── GeneralCalcModule.vue# General calculator
+│   ├── ColorPickerModule.vue# Color picker
+│   ├── ClipboardHistoryModule.vue
+│   ├── ScreenshotHistoryModule.vue
+│   ├── LevelsCard.vue       # Entry/TP/SL inputs
+│   ├── CalculatorCard.vue   # Position sizing inputs
+│   └── ResultsCard.vue      # Calculation results
+├── composables/             # Vue composables
+│   ├── useCalculator.ts     # Position calculation logic
+│   ├── useConfig.ts         # Settings persistence
+│   ├── useFibExtractor.ts   # OCR Fibonacci extraction
+│   ├── useAutoHide.ts       # Window auto-hide behavior
+│   ├── useNotes.ts
+│   ├── useTodos.ts
+│   ├── useWorldClock.ts
+│   ├── useCalendar.ts
+│   ├── useGeneralCalc.ts
+│   ├── useColorPicker.ts
+│   ├── useClipboardHistory.ts
+│   └── useScreenshotHistory.ts
 ├── pages/
-│   └── index.vue        # Main UI
-├── src-tauri/           # Rust backend
+│   ├── index.vue            # Main UI & module router
+│   ├── region-selector.vue  # OCR region selection overlay
+│   ├── screenshot-preview.vue
+│   └── color-picker-overlay.vue
+├── src-tauri/               # Rust backend
 │   ├── src/
 │   │   ├── main.rs
-│   │   ├── lib.rs       # Tauri commands
-│   │   ├── capture.rs   # Screen capture
-│   │   ├── ocr.rs       # Tesseract OCR
-│   │   └── config.rs    # Config persistence
+│   │   ├── lib.rs           # Tauri commands
+│   │   ├── capture.rs       # Screen capture
+│   │   └── config.rs        # Config persistence
 │   ├── Cargo.toml
 │   └── tauri.conf.json
 ├── nuxt.config.ts
