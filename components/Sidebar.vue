@@ -45,16 +45,68 @@
       </div>
 
       <div class="sidebar-tabs">
-        <button
-          v-for="module in modules"
-          :key="module.id"
-          class="tab-btn"
-          :class="{ active: activeModule === module.id }"
-          @click="selectModule(module.id)"
-        >
-          <span class="tab-icon" v-html="module.icon"></span>
-          <span class="tab-label">{{ module.label }}</span>
-        </button>
+        <!-- Basic mode: only general modules -->
+        <template v-if="displayMode === 'basic'">
+          <button
+            v-for="module in generalModules"
+            :key="module.id"
+            class="tab-btn"
+            :class="{ active: activeModule === module.id }"
+            @click="selectModule(module.id)"
+          >
+            <span class="tab-icon" v-html="module.icon"></span>
+            <span class="tab-label">{{ module.label }}</span>
+          </button>
+        </template>
+
+        <!-- Pro mode: sections with collapsible dividers -->
+        <template v-else>
+          <div
+            class="section-divider"
+            @click="generalCollapsed = !generalCollapsed"
+          >
+            <span class="divider-line"></span>
+            <span class="divider-label"
+              >{{ generalCollapsed ? "▶" : "▼" }} General</span
+            >
+            <span class="divider-line"></span>
+          </div>
+          <template v-if="!generalCollapsed">
+            <button
+              v-for="module in generalModules"
+              :key="module.id"
+              class="tab-btn"
+              :class="{ active: activeModule === module.id }"
+              @click="selectModule(module.id)"
+            >
+              <span class="tab-icon" v-html="module.icon"></span>
+              <span class="tab-label">{{ module.label }}</span>
+            </button>
+          </template>
+
+          <div
+            class="section-divider"
+            @click="advancedCollapsed = !advancedCollapsed"
+          >
+            <span class="divider-line"></span>
+            <span class="divider-label"
+              >{{ advancedCollapsed ? "▶" : "▼" }} Advanced</span
+            >
+            <span class="divider-line"></span>
+          </div>
+          <template v-if="!advancedCollapsed">
+            <button
+              v-for="module in advancedModules"
+              :key="module.id"
+              class="tab-btn"
+              :class="{ active: activeModule === module.id }"
+              @click="selectModule(module.id)"
+            >
+              <span class="tab-icon" v-html="module.icon"></span>
+              <span class="tab-label">{{ module.label }}</span>
+            </button>
+          </template>
+        </template>
       </div>
 
       <div class="sidebar-footer">
@@ -89,11 +141,16 @@
 </template>
 
 <script setup lang="ts">
+import type { DisplayMode } from "~/composables/useConfig";
+
 const isOpen = ref(false);
+const generalCollapsed = ref(false);
+const advancedCollapsed = ref(false);
 
 const props = defineProps<{
   activeModule: string;
   windowPosition?: string;
+  displayMode: DisplayMode;
 }>();
 
 const emit = defineEmits<{
@@ -102,7 +159,9 @@ const emit = defineEmits<{
 
 const isRight = computed(() => props.windowPosition === "right");
 
-const modules = [
+const generalIds = ["home", "notes", "todos"];
+
+const allModules = [
   {
     id: "home",
     label: "Home",
@@ -154,6 +213,13 @@ const modules = [
     icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
   },
 ];
+
+const generalModules = computed(() =>
+  allModules.filter((m) => generalIds.includes(m.id)),
+);
+const advancedModules = computed(() =>
+  allModules.filter((m) => !generalIds.includes(m.id)),
+);
 
 function toggleSidebar() {
   isOpen.value = !isOpen.value;
@@ -302,6 +368,38 @@ function selectModule(moduleId: string) {
 .tab-label {
   font-size: 14px;
   font-weight: 500;
+}
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.divider-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.section-divider:hover .divider-label {
+  color: var(--text-primary);
+}
+
+.section-divider:hover .divider-line {
+  background: var(--text-secondary);
 }
 
 .sidebar-overlay {

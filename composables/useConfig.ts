@@ -3,6 +3,7 @@ import type { CalculatorInputs } from "./useCalculator";
 export type WindowPosition = "left" | "right";
 export type ColorTheme = "default" | "monochrome";
 export type TriggerStyle = "column" | "halfcircle";
+export type DisplayMode = "basic" | "pro";
 
 export interface AppConfig {
   scanRegion: [number, number, number, number] | null;
@@ -11,6 +12,7 @@ export interface AppConfig {
   colorTheme: ColorTheme;
   triggerStyle: TriggerStyle;
   monitorIndex: number;
+  displayMode: DisplayMode;
 }
 
 const CONFIG_KEY = "quanthub_config";
@@ -23,6 +25,7 @@ export function useConfig() {
     colorTheme: "default",
     triggerStyle: "halfcircle",
     monitorIndex: 0,
+    displayMode: "basic",
   });
 
   async function loadConfig() {
@@ -90,6 +93,11 @@ export function useConfig() {
     saveConfig();
   }
 
+  function setDisplayMode(mode: DisplayMode) {
+    config.value.displayMode = mode;
+    saveConfig();
+  }
+
   // Load on init
   onMounted(() => {
     loadConfig();
@@ -105,5 +113,6 @@ export function useConfig() {
     setColorTheme,
     setTriggerStyle,
     setMonitorIndex,
+    setDisplayMode,
   };
 }

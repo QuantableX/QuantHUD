@@ -236,6 +236,26 @@ export function useTodos() {
     saveTodos();
   }
 
+  function moveSubtaskToTask(
+    fromSectionId: string,
+    fromTaskId: string,
+    subtaskIndex: number,
+    toSectionId: string,
+    toTaskId: string,
+    toIndex: number,
+  ) {
+    const fromTask = sections.value
+      .find((s) => s.id === fromSectionId)
+      ?.tasks.find((t) => t.id === fromTaskId);
+    const toTask = sections.value
+      .find((s) => s.id === toSectionId)
+      ?.tasks.find((t) => t.id === toTaskId);
+    if (!fromTask || !toTask) return;
+    const [subtask] = fromTask.subtasks.splice(subtaskIndex, 1);
+    toTask.subtasks.splice(toIndex, 0, subtask);
+    saveTodos();
+  }
+
   onMounted(() => {
     loadTodos();
   });
@@ -258,5 +278,6 @@ export function useTodos() {
     reorderTask,
     moveTaskToSectionAt,
     reorderSubtask,
+    moveSubtaskToTask,
   };
 }

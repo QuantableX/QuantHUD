@@ -219,12 +219,12 @@
                 'subtask-done': sub.done,
                 'subtask-drop-above':
                   dropTargetSubtaskIdx === stIdx &&
-                  draggingSubtask?.taskId === task.id &&
+                  dropTargetTaskId === task.id &&
                   dragType === 'subtask' &&
                   subtaskDropPosition === 'above',
                 'subtask-drop-below':
                   dropTargetSubtaskIdx === stIdx &&
-                  draggingSubtask?.taskId === task.id &&
+                  dropTargetTaskId === task.id &&
                   dragType === 'subtask' &&
                   subtaskDropPosition === 'below',
                 'subtask-dragging':
@@ -277,7 +277,9 @@
               </button>
             </div>
             <p v-if="task.subtasks.length === 0" class="empty-hint">
-              No subtasks yet
+              {{
+                dragType === "subtask" ? "Drop subtask here" : "No subtasks yet"
+              }}
             </p>
           </div>
         </div>
@@ -315,6 +317,7 @@ const {
   reorderTask,
   moveTaskToSectionAt,
   reorderSubtask,
+  moveSubtaskToTask,
 } = useTodos();
 
 const editingSectionId = ref<string | null>(null);
@@ -340,6 +343,8 @@ const dropTargetTaskIdx = ref<number | null>(null);
 const taskDropPosition = ref<"above" | "below" | null>(null);
 const dropTargetSubtaskIdx = ref<number | null>(null);
 const subtaskDropPosition = ref<"above" | "below" | null>(null);
+const dropTargetTaskId = ref<string | null>(null);
+const dropTargetSubtaskSectionId = ref<string | null>(null);
 const sectionDropPosition = ref<"above" | "below" | null>(null);
 const dropTargetSectionIdx = ref<number | null>(null);
 
@@ -509,14 +514,15 @@ function onSubtaskDragStart(
 }
 
 function onSubtaskListDragOver(
-  _sectionId: string,
+  sectionId: string,
   taskId: string,
   subtaskCount: number,
   e: DragEvent,
 ) {
-  if (dragType.value !== "subtask" || draggingSubtask.value?.taskId !== taskId)
-    return;
+  if (dragType.value !== "subtask") return;
   if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  dropTargetTaskId.value = taskId;
+  dropTargetSubtaskSectionId.value = sectionId;
   if (subtaskCount > 0) {
     dropTargetSubtaskIdx.value = subtaskCount - 1;
     subtaskDropPosition.value = "below";
@@ -527,14 +533,15 @@ function onSubtaskListDragOver(
 }
 
 function onSubtaskDragOver(
-  _sectionId: string,
+  sectionId: string,
   taskId: string,
   subtaskIdx: number,
   e: DragEvent,
 ) {
-  if (dragType.value !== "subtask" || draggingSubtask.value?.taskId !== taskId)
-    return;
+  if (dragType.value !== "subtask") return;
   if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  dropTargetTaskId.value = taskId;
+  dropTargetSubtaskSectionId.value = sectionId;
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
   const midY = rect.top + rect.height / 2;
   dropTargetSubtaskIdx.value = subtaskIdx;
@@ -546,14 +553,26 @@ function onSubtaskDrop(sectionId: string, taskId: string, toIdx: number) {
     resetDragState();
     return;
   }
-  if (draggingSubtask.value.taskId !== taskId) {
-    resetDragState();
-    return;
-  }
+  const fromSectionId = draggingSubtask.value.sectionId;
+  const fromTaskId = draggingSubtask.value.taskId;
   const fromIdx = draggingSubtask.value.subtaskIdx;
   let finalIdx = subtaskDropPosition.value === "below" ? toIdx + 1 : toIdx;
-  if (fromIdx < finalIdx) finalIdx--;
-  reorderSubtask(sectionId, taskId, fromIdx, finalIdx);
+
+  if (fromTaskId === taskId) {
+    // Same task — reorder within
+    if (fromIdx < finalIdx) finalIdx--;
+    reorderSubtask(sectionId, taskId, fromIdx, finalIdx);
+  } else {
+    // Different task (possibly different section) — move across
+    moveSubtaskToTask(
+      fromSectionId,
+      fromTaskId,
+      fromIdx,
+      sectionId,
+      taskId,
+      finalIdx,
+    );
+  }
   resetDragState();
 }
 
@@ -572,6 +591,8 @@ function resetDragState() {
   taskDropPosition.value = null;
   dropTargetSubtaskIdx.value = null;
   subtaskDropPosition.value = null;
+  dropTargetTaskId.value = null;
+  dropTargetSubtaskSectionId.value = null;
   sectionDropPosition.value = null;
   dropTargetSectionIdx.value = null;
   document.removeEventListener("dragover", onDocSectionDragOver);

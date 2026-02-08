@@ -32,6 +32,7 @@
             v-if="windowPosition === 'left'"
             :active-module="activeModule"
             :window-position="windowPosition"
+            :display-mode="config.displayMode || 'basic'"
             @update:active-module="activeModule = $event"
           />
           <button
@@ -94,6 +95,7 @@
             v-else
             :active-module="activeModule"
             :window-position="windowPosition"
+            :display-mode="config.displayMode || 'basic'"
             @update:active-module="activeModule = $event"
           />
         </header>
@@ -101,17 +103,67 @@
         <!-- Home Module -->
         <div v-if="activeModule === 'home'" class="module-content">
           <div class="home-hub">
-            <div class="hub-grid">
-              <button
-                v-for="mod in homeModules"
-                :key="mod.id"
-                class="hub-card"
-                @click="activeModule = mod.id"
+            <!-- Basic mode: only general modules -->
+            <template v-if="displayMode === 'basic'">
+              <div class="hub-grid">
+                <button
+                  v-for="mod in homeGeneralModules"
+                  :key="mod.id"
+                  class="hub-card"
+                  @click="activeModule = mod.id"
+                >
+                  <span class="hub-icon" v-html="mod.icon"></span>
+                  <span class="hub-label">{{ mod.label }}</span>
+                </button>
+              </div>
+            </template>
+
+            <!-- Pro mode: sections with collapsible dividers -->
+            <template v-else>
+              <div
+                class="home-section-divider"
+                @click="homeGeneralCollapsed = !homeGeneralCollapsed"
               >
-                <span class="hub-icon" v-html="mod.icon"></span>
-                <span class="hub-label">{{ mod.label }}</span>
-              </button>
-            </div>
+                <span class="home-divider-line"></span>
+                <span class="home-divider-label"
+                  >{{ homeGeneralCollapsed ? "▶" : "▼" }} General</span
+                >
+                <span class="home-divider-line"></span>
+              </div>
+              <div v-if="!homeGeneralCollapsed" class="hub-grid">
+                <button
+                  v-for="mod in homeGeneralModules"
+                  :key="mod.id"
+                  class="hub-card"
+                  @click="activeModule = mod.id"
+                >
+                  <span class="hub-icon" v-html="mod.icon"></span>
+                  <span class="hub-label">{{ mod.label }}</span>
+                </button>
+              </div>
+
+              <div
+                class="home-section-divider"
+                @click="homeAdvancedCollapsed = !homeAdvancedCollapsed"
+              >
+                <span class="home-divider-line"></span>
+                <span class="home-divider-label"
+                  >{{ homeAdvancedCollapsed ? "▶" : "▼" }} Advanced</span
+                >
+                <span class="home-divider-line"></span>
+              </div>
+              <div v-if="!homeAdvancedCollapsed" class="hub-grid">
+                <button
+                  v-for="mod in homeAdvancedModules"
+                  :key="mod.id"
+                  class="hub-card"
+                  @click="activeModule = mod.id"
+                >
+                  <span class="hub-icon" v-html="mod.icon"></span>
+                  <span class="hub-label">{{ mod.label }}</span>
+                </button>
+              </div>
+            </template>
           </div>
         </div>
 
@@ -339,6 +391,19 @@
                 </button>
               </div>
             </div>
+
+            <!-- Display Mode -->
+            <div class="setting-group">
+              <label class="setting-label">Display Mode</label>
+              <select
+                class="monitor-select"
+                :value="config.displayMode || 'basic'"
+                @change="handleDisplayModeChange($event)"
+              >
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -418,11 +483,17 @@ const {
   setColorTheme,
   setTriggerStyle,
   setMonitorIndex,
+  setDisplayMode,
 } = useConfig();
 
 const isPinned = ref(false);
 const isTucked = ref(true);
 const activeModule = ref("home");
+const homeGeneralCollapsed = ref(false);
+const homeAdvancedCollapsed = ref(false);
+
+const displayMode = computed(() => config.value.displayMode || "basic");
+const generalHomeIds = ["notes", "todos"];
 
 const homeModules = [
   {
@@ -471,6 +542,14 @@ const homeModules = [
     icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
   },
 ];
+
+const homeGeneralModules = computed(() =>
+  homeModules.filter((m) => generalHomeIds.includes(m.id)),
+);
+const homeAdvancedModules = computed(() =>
+  homeModules.filter((m) => !generalHomeIds.includes(m.id)),
+);
+
 const windowPosition = computed(() => config.value.windowPosition || "left");
 const triggerStyle = computed(() => config.value.triggerStyle || "halfcircle");
 const availableMonitors = ref<
@@ -707,6 +786,11 @@ function handleThemeChange(theme: "default" | "monochrome") {
 
 function handleTriggerStyleChange(style: "column" | "halfcircle") {
   setTriggerStyle(style);
+}
+
+function handleDisplayModeChange(event: Event) {
+  const target = event.target as HTMLSelectElement;
+  setDisplayMode(target.value as "basic" | "pro");
 }
 
 function applyTheme() {
@@ -1045,5 +1129,37 @@ function applyTheme() {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.3px;
+}
+
+.home-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.home-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.home-divider-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.home-section-divider:hover .home-divider-label {
+  color: var(--text-primary);
+}
+
+.home-section-divider:hover .home-divider-line {
+  background: var(--text-secondary);
 }
 </style>

@@ -140,7 +140,36 @@ QuantHUD/
 
 ---
 
+## Code Signing (Windows Smart App Control)
+
+Windows Smart App Control / WDAC may block unsigned debug builds with error `os error 4551`. To fix this **without** disabling any Windows security settings, sign the executable after building:
+
+```bash
+npm run tauri:sign
+```
+
+This runs `scripts/sign-dev.ps1` which:
+
+1. Creates a local self-signed `CN=QuantHUD Dev` code-signing certificate (first run only)
+2. Adds it to your user Trusted Root store (first run only)
+3. Signs `src-tauri/target/debug/quanthud.exe`
+
+To sign a **release** build instead:
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/sign-dev.ps1 release
+```
+
+> The certificate is valid for 5 years and scoped to your user account only.
+
+---
+
 ## Troubleshooting
+
+### Executable Blocked (os error 4551)
+
+- Run `npm run tauri:sign` after building to sign the exe
+- See [Code Signing](#code-signing-windows-smart-app-control) above
 
 ### OCR Not Working
 
