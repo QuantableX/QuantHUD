@@ -10,6 +10,7 @@
     "frontendDist": "../.output/public"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "label": "main",

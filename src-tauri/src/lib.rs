@@ -399,6 +399,7 @@ async fn open_screenshots_folder() -> Result<(), String> {
 
 /// Copy a screenshot image to the system clipboard (actual image, not text)
 #[tauri::command]
+#[allow(unused_variables)]
 async fn copy_screenshot_to_clipboard(path: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
