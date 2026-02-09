@@ -191,6 +191,41 @@ export function useNotes() {
     saveNotes();
   }
 
+  // --- Duplicate helpers ---
+
+  function duplicateSection(sectionId: string) {
+    const s = sections.value.find((s) => s.id === sectionId);
+    if (!s) return;
+    const idx = sections.value.indexOf(s);
+    const newSection: Section = {
+      id: generateId(),
+      name: s.name + " (copy)",
+      collapsed: false,
+      notes: s.notes.map((n) => ({
+        id: generateId(),
+        title: n.title,
+        content: n.content,
+      })),
+    };
+    sections.value.splice(idx + 1, 0, newSection);
+    saveNotes();
+  }
+
+  function duplicateNote(sectionId: string, noteId: string) {
+    const s = sections.value.find((s) => s.id === sectionId);
+    if (!s) return;
+    const nIdx = s.notes.findIndex((n) => n.id === noteId);
+    if (nIdx === -1) return;
+    const original = s.notes[nIdx];
+    const newNote: Note = {
+      id: generateId(),
+      title: original.title + " (copy)",
+      content: original.content,
+    };
+    s.notes.splice(nIdx + 1, 0, newNote);
+    saveNotes();
+  }
+
   // --- Drag & drop reorder helpers ---
 
   function reorderSection(fromIndex: number, toIndex: number) {
@@ -244,5 +279,7 @@ export function useNotes() {
     reorderSection,
     reorderNote,
     moveNoteToSectionAt,
+    duplicateSection,
+    duplicateNote,
   };
 }

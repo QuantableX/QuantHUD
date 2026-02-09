@@ -173,9 +173,41 @@
         >
           ||
         </button>
+        <button
+          class="btn btn-primary btn-sm"
+          @click="addStopwatchRound"
+          :disabled="stopwatchElapsedMs === 0"
+          title="Record round"
+        >
+          ⏱
+        </button>
         <button class="btn btn-primary btn-sm" @click="resetStopwatch">
           ↺
         </button>
+      </div>
+      <!-- Rounds list -->
+      <div v-if="stopwatchRounds.length" class="rounds-wrapper">
+        <div class="rounds-header">
+          <span class="rounds-title">Rounds</span>
+          <button
+            class="ctrl-btn ctrl-del"
+            @click="clearStopwatchRounds"
+            title="Clear rounds"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="rounds-list">
+          <div
+            v-for="round in [...stopwatchRounds].reverse()"
+            :key="round.id"
+            class="round-row"
+          >
+            <span class="round-num">#{{ round.round }}</span>
+            <span class="round-split">{{ formatMs(round.splitMs) }}</span>
+            <span class="round-total">{{ formatMs(round.totalMs) }}</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -190,6 +222,7 @@ const {
   timerRunning,
   stopwatchElapsedMs,
   stopwatchRunning,
+  stopwatchRounds,
   addClock,
   removeClock,
   addProfile,
@@ -200,6 +233,8 @@ const {
   startStopwatch,
   stopStopwatch,
   resetStopwatch,
+  addStopwatchRound,
+  clearStopwatchRounds,
 } = useWorldClock();
 const tab = ref<"clocks" | "timer" | "stopwatch">("clocks");
 const showAddClock = ref(false);
@@ -277,13 +312,18 @@ function formatMs(ms: number): string {
 
 <style scoped>
 .wc-module {
+  display: flex;
+  flex-direction: column;
   padding: 4px 0;
+  min-height: 0;
+  flex: 1;
 }
 .wc-tabs {
   display: flex;
   gap: 6px;
   margin-bottom: 12px;
   padding-right: 4px;
+  flex-shrink: 0;
 }
 .wc-tabs button {
   flex: 1;
@@ -304,6 +344,9 @@ function formatMs(ms: number): string {
 .wc-panel {
   min-height: 60px;
   padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 .clock-list {
   display: flex;
@@ -340,6 +383,7 @@ function formatMs(ms: number): string {
   font-weight: 700;
   font-family: monospace;
   color: var(--accent-green);
+  flex-shrink: 0;
   padding: 16px 0;
 }
 .timer-controls {
@@ -347,6 +391,7 @@ function formatMs(ms: number): string {
   justify-content: center;
   gap: 8px;
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 .profile-row {
   display: flex;
@@ -396,5 +441,68 @@ function formatMs(ms: number): string {
 }
 .ctrl-del:hover {
   color: var(--accent-red);
+}
+/* Rounds wrapper */
+.rounds-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  margin-top: 8px;
+}
+.rounds-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px 4px;
+  flex-shrink: 0;
+}
+/* Rounds list - styled like screenshot list */
+.rounds-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 4px;
+  background: var(--bg-secondary);
+}
+.rounds-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.round-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.round-row:hover {
+  background: var(--bg-secondary);
+}
+.round-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 28px;
+}
+.round-split {
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--accent-green);
+  flex: 1;
+}
+.round-total {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-secondary);
 }
 </style>

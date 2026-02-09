@@ -72,6 +72,27 @@
             +
           </button>
           <button
+            class="ctrl-btn"
+            @click="duplicateSection(section.id)"
+            title="Duplicate section"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path
+                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+              />
+            </svg>
+          </button>
+          <button
             class="ctrl-btn ctrl-del"
             @click="confirmDeleteSection(section.id)"
             title="Delete section"
@@ -144,6 +165,48 @@
 
             <div class="note-controls">
               <button
+                class="ctrl-btn"
+                @click="duplicateNote(section.id, note.id)"
+                title="Duplicate note"
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path
+                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                  />
+                </svg>
+              </button>
+              <button
+                class="ctrl-btn"
+                @click="copyNoteContent(note)"
+                title="Copy note content"
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+                  />
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                </svg>
+              </button>
+              <button
                 class="ctrl-btn ctrl-del"
                 @click="deleteNote(section.id, note.id)"
                 title="Delete note"
@@ -189,6 +252,8 @@ const {
   reorderSection,
   reorderNote,
   moveNoteToSectionAt,
+  duplicateSection,
+  duplicateNote,
 } = useNotes();
 
 const editingSectionId = ref<string | null>(null);
@@ -433,12 +498,16 @@ function handleContentChange(sectionId: string, noteId: string, e: Event) {
 }
 
 function confirmDeleteSection(id: string) {
-  const s = sections.value.find((s) => s.id === id);
-  if (s && s.notes.length > 0) {
-    if (!confirm(`Delete "${s.name}" and its ${s.notes.length} note(s)?`))
-      return;
-  }
   deleteSection(id);
+}
+
+async function copyNoteContent(note: { title: string; content: string }) {
+  const text = note.content || note.title;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    console.warn("Failed to copy note content");
+  }
 }
 </script>
 

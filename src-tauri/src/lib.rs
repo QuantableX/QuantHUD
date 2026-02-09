@@ -4,6 +4,46 @@ mod config;
 use serde::{Deserialize, Serialize};
 use tauri::{Manager, PhysicalPosition, WebviewWindow};
 
+/// Get the actual work-area height for a monitor by querying the OS.
+/// Falls back to screen_height - 48*scale on non-Windows or on failure.
+fn get_work_area_height(monitor: &tauri::Monitor) -> i32 {
+    let scale_factor = monitor.scale_factor();
+    let screen_height = monitor.size().height as i32;
+
+    #[cfg(target_os = "windows")]
+    {
+        #[repr(C)]
+        struct RECT { left: i32, top: i32, right: i32, bottom: i32 }
+
+        extern "system" {
+            fn SystemParametersInfoW(uiAction: u32, uiParam: u32, pvParam: *mut std::ffi::c_void, fWinIni: u32) -> i32;
+        }
+
+        const SPI_GETWORKAREA: u32 = 0x0030;
+        let mut rect = RECT { left: 0, top: 0, right: 0, bottom: 0 };
+        let ok = unsafe {
+            SystemParametersInfoW(
+                SPI_GETWORKAREA,
+                0,
+                &mut rect as *mut RECT as *mut std::ffi::c_void,
+                0,
+            )
+        };
+        if ok != 0 {
+            // rect is in logical pixels for the primary monitor work area.
+            // Scale to physical pixels to match monitor.size() which is physical.
+            let work_h = ((rect.bottom - rect.top) as f64 * scale_factor) as i32;
+            // Only use it when it looks sane (positive and smaller than full screen)
+            if work_h > 0 && work_h <= screen_height {
+                return work_h;
+            }
+        }
+    }
+
+    // Fallback: assume 48 logical-px taskbar
+    screen_height - (48.0 * scale_factor) as i32
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CaptureResult {
     pub image_base64: String,
@@ -46,9 +86,7 @@ async fn tuck_window(window: WebviewWindow, position: String, monitor_index: Opt
 
     let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
-    let screen_height = monitor.size().height as i32;
-    let taskbar_height = (48.0 * scale_factor) as i32;
-    let window_height = screen_height - taskbar_height;
+    let window_height = get_work_area_height(&monitor);
 
     // Set new size with correct height (in physical pixels)
     window.set_size(tauri::PhysicalSize::new(
@@ -88,9 +126,7 @@ async fn show_window(window: WebviewWindow, position: String, monitor_index: Opt
 
     let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
-    let screen_height = monitor.size().height as i32;
-    let taskbar_height = (48.0 * scale_factor) as i32;
-    let window_height = screen_height - taskbar_height;
+    let window_height = get_work_area_height(&monitor);
 
     // Reposition FIRST so the window doesn't momentarily overflow
     // onto an adjacent monitor before the resize completes
@@ -143,10 +179,7 @@ async fn setup_window_size(window: WebviewWindow, monitor_index: Option<usize>) 
     };
 
     let scale_factor = monitor.scale_factor();
-    let screen_height = monitor.size().height as i32;
-    let taskbar_height = (48.0 * scale_factor) as i32; // Windows 11 taskbar
-
-    let window_height = screen_height - taskbar_height;
+    let window_height = get_work_area_height(&monitor);
     let window_width = (TOTAL_WIDTH as f64 * scale_factor) as u32;
 
     window.set_size(PhysicalSize::new(window_width, window_height as u32))
@@ -271,9 +304,17 @@ async fn get_cursor_position() -> Result<CursorPosition, String> {
     Err("Failed to get cursor position".to_string())
 }
 
-/// Pick the screen color at the current cursor position (Windows only)
+/// Pick the screen color at the current cursor position (Windows only).
+/// Hides the overlay window first so GetPixel reads the real desktop.
 #[tauri::command]
-async fn pick_screen_color() -> Result<String, String> {
+async fn pick_screen_color(app: tauri::AppHandle) -> Result<String, String> {
+    // Hide the overlay from Rust so timing is deterministic
+    if let Some(overlay) = app.get_webview_window("color-picker-overlay") {
+        let _ = overlay.hide();
+    }
+    // Wait for the compositor to fully remove the overlay surface
+    std::thread::sleep(std::time::Duration::from_millis(150));
+
     #[cfg(target_os = "windows")]
     {
         use std::mem::MaybeUninit;
@@ -292,23 +333,22 @@ async fn pick_screen_color() -> Result<String, String> {
             fn GetPixel(hdc: HDC, x: i32, y: i32) -> COLORREF;
         }
 
-        let mut point = MaybeUninit::<POINT>::uninit();
-        let result = unsafe { GetCursorPos(point.as_mut_ptr()) };
-        if result == 0 {
+        let mut pt = MaybeUninit::<POINT>::uninit();
+        if unsafe { GetCursorPos(pt.as_mut_ptr()) } == 0 {
             return Err("Failed to get cursor position".to_string());
         }
-        let point = unsafe { point.assume_init() };
+        let pt = unsafe { pt.assume_init() };
 
         let hdc = unsafe { GetDC(std::ptr::null_mut()) };
         if hdc.is_null() {
             return Err("Failed to get screen DC".to_string());
         }
 
-        let color = unsafe { GetPixel(hdc, point.x, point.y) };
+        let color = unsafe { GetPixel(hdc, pt.x, pt.y) };
         unsafe { ReleaseDC(std::ptr::null_mut(), hdc) };
 
         if color == 0xFFFFFFFF {
-            return Err("Failed to get pixel color".to_string());
+            return Err(format!("GetPixel failed at ({}, {})", pt.x, pt.y));
         }
 
         let r = color & 0xFF;
@@ -558,6 +598,7 @@ async fn open_region_selector(app: tauri::AppHandle) -> Result<(), String> {
         .always_on_top(true)
         .skip_taskbar(true)
         .resizable(false)
+        .transparent(true)
         .visible(false)
         .build()
         .map_err(|e| format!("Failed to build window: {}", e))?;
@@ -594,7 +635,7 @@ async fn get_selected_region(state: State<'_, RegionState>) -> Result<Option<[i3
     Ok(state.0.lock().unwrap().take())
 }
 
-/// Open fullscreen transparent color picker overlay window
+/// Open transparent color picker overlay window spanning ALL monitors
 #[tauri::command]
 async fn open_color_picker_overlay(app: tauri::AppHandle, state: State<'_, PickedColorState>) -> Result<(), String> {
     use tauri::{WebviewUrl, WebviewWindowBuilder};
@@ -602,9 +643,37 @@ async fn open_color_picker_overlay(app: tauri::AppHandle, state: State<'_, Picke
     // Clear any stale result from a previous pick
     *state.0.lock().unwrap() = None;
 
-    let window = WebviewWindowBuilder::new(&app, "color-picker-overlay", WebviewUrl::App("/color-picker-overlay".into()))
+    // Compute bounding box of the entire virtual desktop (all monitors)
+    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
+    let (mut min_x, mut min_y, mut max_x, mut max_y) = (i32::MAX, i32::MAX, i32::MIN, i32::MIN);
+    // Track primary monitor position relative to virtual desktop origin
+    let mut primary_left: i32 = 0;
+    let mut primary_w: u32 = 0;
+    if let Some(pm) = app.primary_monitor().map_err(|e| e.to_string())? {
+        primary_left = pm.position().x;
+        primary_w = pm.size().width;
+    }
+    for m in &monitors {
+        let pos = m.position();
+        let size = m.size();
+        min_x = min_x.min(pos.x);
+        min_y = min_y.min(pos.y);
+        max_x = max_x.max(pos.x + size.width as i32);
+        max_y = max_y.max(pos.y + size.height as i32);
+    }
+    let virt_w = (max_x - min_x) as u32;
+    let virt_h = (max_y - min_y) as u32;
+
+    // Pass primary monitor offset (relative to virtual desktop origin) as query
+    // params so the overlay can center the instructions on the primary screen.
+    let primary_offset_x = primary_left - min_x; // px from left edge of overlay
+    let url = format!(
+        "/color-picker-overlay?pmx={}&pmw={}",
+        primary_offset_x, primary_w
+    );
+
+    let window = WebviewWindowBuilder::new(&app, "color-picker-overlay", WebviewUrl::App(url.into()))
         .title("Pick Color")
-        .fullscreen(true)
         .decorations(false)
         .always_on_top(true)
         .skip_taskbar(true)
@@ -613,6 +682,59 @@ async fn open_color_picker_overlay(app: tauri::AppHandle, state: State<'_, Picke
         .visible(false)
         .build()
         .map_err(|e| format!("Failed to build window: {}", e))?;
+
+    // Strip WS_THICKFRAME and WS_CAPTION so the DWM invisible border is
+    // removed, then use SetWindowPos to place the window at exact physical
+    // pixel coordinates with zero deadspace.
+    #[cfg(target_os = "windows")]
+    {
+        use std::ffi::c_void;
+        type HWND = *mut c_void;
+
+        extern "system" {
+            fn GetWindowLongW(hWnd: HWND, nIndex: i32) -> i32;
+            fn SetWindowLongW(hWnd: HWND, nIndex: i32, dwNewLong: i32) -> i32;
+            fn SetWindowPos(
+                hWnd: HWND,
+                hWndInsertAfter: HWND,
+                x: i32, y: i32, cx: i32, cy: i32,
+                uFlags: u32,
+            ) -> i32;
+        }
+
+        const GWL_STYLE: i32 = -16;
+        const WS_THICKFRAME: i32 = 0x00040000;
+        const WS_CAPTION: i32 = 0x00C00000;
+        const HWND_TOPMOST: isize = -1;
+        const SWP_FRAMECHANGED: u32 = 0x0020;
+        const SWP_NOACTIVATE: u32 = 0x0010;
+
+        if let Ok(raw) = window.hwnd() {
+            let hwnd = raw.0 as HWND;
+            unsafe {
+                // Remove the styles that cause the invisible DWM border
+                let style = GetWindowLongW(hwnd, GWL_STYLE);
+                SetWindowLongW(hwnd, GWL_STYLE, style & !WS_THICKFRAME & !WS_CAPTION);
+
+                // Now position — SWP_FRAMECHANGED forces Windows to re-apply
+                // the new style so the border is truly gone.
+                SetWindowPos(
+                    hwnd,
+                    HWND_TOPMOST as HWND,
+                    min_x, min_y,
+                    virt_w as i32, virt_h as i32,
+                    SWP_FRAMECHANGED | SWP_NOACTIVATE,
+                );
+            }
+        }
+    }
+
+    // Fallback for non-Windows
+    #[cfg(not(target_os = "windows"))]
+    {
+        window.set_size(tauri::PhysicalSize::new(virt_w, virt_h)).map_err(|e| e.to_string())?;
+        window.set_position(PhysicalPosition::new(min_x, min_y)).map_err(|e| e.to_string())?;
+    }
 
     let window_clone = window.clone();
     std::thread::spawn(move || {

@@ -207,6 +207,53 @@ export function useTodos() {
     }
   }
 
+  // --- Duplicate helpers ---
+
+  function duplicateSection(sectionId: string) {
+    const s = sections.value.find((s) => s.id === sectionId);
+    if (!s) return;
+    const idx = sections.value.indexOf(s);
+    const newSection: TodoSection = {
+      id: generateId(),
+      name: s.name + " (copy)",
+      collapsed: false,
+      tasks: s.tasks.map((t) => ({
+        id: generateId(),
+        title: t.title,
+        done: t.done,
+        expanded: t.expanded,
+        subtasks: t.subtasks.map((st) => ({
+          id: generateId(),
+          title: st.title,
+          done: st.done,
+        })),
+      })),
+    };
+    sections.value.splice(idx + 1, 0, newSection);
+    saveTodos();
+  }
+
+  function duplicateTask(sectionId: string, taskId: string) {
+    const s = sections.value.find((s) => s.id === sectionId);
+    if (!s) return;
+    const tIdx = s.tasks.findIndex((t) => t.id === taskId);
+    if (tIdx === -1) return;
+    const original = s.tasks[tIdx];
+    const newTask: Task = {
+      id: generateId(),
+      title: original.title + " (copy)",
+      done: original.done,
+      expanded: original.expanded,
+      subtasks: original.subtasks.map((st) => ({
+        id: generateId(),
+        title: st.title,
+        done: st.done,
+      })),
+    };
+    s.tasks.splice(tIdx + 1, 0, newTask);
+    saveTodos();
+  }
+
   // --- Reorder helpers ---
 
   function reorderSection(fromIndex: number, toIndex: number) {
@@ -307,5 +354,7 @@ export function useTodos() {
     reorderSubtask,
     moveSubtaskToTask,
     toggleTaskExpand,
+    duplicateSection,
+    duplicateTask,
   };
 }

@@ -74,6 +74,27 @@
             +
           </button>
           <button
+            class="ctrl-btn"
+            @click="duplicateSection(section.id)"
+            title="Duplicate section"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path
+                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+              />
+            </svg>
+          </button>
+          <button
             class="ctrl-btn ctrl-del"
             @click="confirmDeleteSection(section.id)"
             title="Delete section"
@@ -176,6 +197,27 @@
                 title="Add subtask"
               >
                 +
+              </button>
+              <button
+                class="ctrl-btn"
+                @click="duplicateTask(section.id, task.id)"
+                title="Duplicate task (without subtasks)"
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path
+                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                  />
+                </svg>
               </button>
               <button
                 class="ctrl-btn ctrl-del"
@@ -315,6 +357,8 @@ const {
   reorderSubtask,
   moveSubtaskToTask,
   toggleTaskExpand,
+  duplicateSection,
+  duplicateTask,
 } = useTodos();
 
 const editingSectionId = ref<string | null>(null);
@@ -636,11 +680,6 @@ function finishRenameSubtask(
 }
 
 function confirmDeleteSection(id: string) {
-  const s = sections.value.find((s) => s.id === id);
-  if (s && s.tasks.length > 0) {
-    if (!confirm(`Delete "${s.name}" and its ${s.tasks.length} task(s)?`))
-      return;
-  }
   deleteSection(id);
 }
 </script>

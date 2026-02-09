@@ -457,7 +457,10 @@
         </div>
 
         <!-- World Clock Module -->
-        <div v-else-if="activeModule === 'worldclock'" class="module-content">
+        <div
+          v-else-if="activeModule === 'worldclock'"
+          class="module-content module-content--fill"
+        >
           <WorldClockModule />
         </div>
 
@@ -643,6 +646,9 @@ const isTauri =
 
 // Load saved settings on mount
 onMounted(async () => {
+  // Start clipboard polling globally (survives module navigation)
+  initClipboardPolling();
+
   await loadConfig();
   if (config.value.scanRegion) {
     scanRegion.value = config.value.scanRegion;

@@ -10,6 +10,13 @@ export interface TimerProfile {
   durationSec: number;
 }
 
+export interface StopwatchRound {
+  id: string;
+  round: number;
+  splitMs: number;
+  totalMs: number;
+}
+
 const WORLDCLOCK_KEY = "quanthud_worldclock";
 
 function generateId(): string {
@@ -37,6 +44,7 @@ export function useWorldClock() {
   const timerRunning = ref(false);
   const stopwatchElapsedMs = ref(0);
   const stopwatchRunning = ref(false);
+  const stopwatchRounds = ref<StopwatchRound[]>([]);
 
   let timerInterval: ReturnType<typeof setInterval> | null = null;
   let stopwatchInterval: ReturnType<typeof setInterval> | null = null;
@@ -160,9 +168,28 @@ export function useWorldClock() {
       stopwatchInterval = null;
     }
   }
+  function addStopwatchRound() {
+    const currentMs = stopwatchElapsedMs.value;
+    const lastTotal =
+      stopwatchRounds.value.length > 0
+        ? stopwatchRounds.value[stopwatchRounds.value.length - 1].totalMs
+        : 0;
+    stopwatchRounds.value.push({
+      id: generateId(),
+      round: stopwatchRounds.value.length + 1,
+      splitMs: currentMs - lastTotal,
+      totalMs: currentMs,
+    });
+  }
+
+  function clearStopwatchRounds() {
+    stopwatchRounds.value = [];
+  }
+
   function resetStopwatch() {
     stopStopwatch();
     stopwatchElapsedMs.value = 0;
+    clearStopwatchRounds();
   }
 
   onMounted(() => {
@@ -181,6 +208,7 @@ export function useWorldClock() {
     timerRunning,
     stopwatchElapsedMs,
     stopwatchRunning,
+    stopwatchRounds,
     addClock,
     removeClock,
     addProfile,
@@ -191,6 +219,8 @@ export function useWorldClock() {
     startStopwatch,
     stopStopwatch,
     resetStopwatch,
+    addStopwatchRound,
+    clearStopwatchRounds,
     save,
   };
 }

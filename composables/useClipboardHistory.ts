@@ -11,111 +11,122 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-export function useClipboardHistory() {
-  const entries = ref<ClipboardEntry[]>([]);
-  let pollInterval: ReturnType<typeof setInterval> | null = null;
-  let lastClipText = "";
+// ── Shared singleton state so polling survives component unmount ──
+const _entries = ref<ClipboardEntry[]>([]);
+let _pollInterval: ReturnType<typeof setInterval> | null = null;
+let _lastClipText = "";
+let _initialized = false;
 
-  async function load() {
-    try {
-      if (typeof window !== "undefined" && (window as any).__TAURI__) {
-        const { invoke } = await import("@tauri-apps/api/core");
-        const saved = await invoke<string>("load_config");
-        if (saved) {
-          const config = JSON.parse(saved);
-          if (config._clipboardHistory) {
-            entries.value = config._clipboardHistory;
-            return;
-          }
+async function _load() {
+  try {
+    if (typeof window !== "undefined" && (window as any).__TAURI__) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const saved = await invoke<string>("load_config");
+      if (saved) {
+        const config = JSON.parse(saved);
+        if (config._clipboardHistory) {
+          _entries.value = config._clipboardHistory;
+          return;
         }
       }
-      const saved = localStorage.getItem(CLIPBOARD_KEY);
-      if (saved) entries.value = JSON.parse(saved);
-    } catch (e) { console.warn("Failed to load clipboard history:", e); }
+    }
+    const saved = localStorage.getItem(CLIPBOARD_KEY);
+    if (saved) _entries.value = JSON.parse(saved);
+  } catch (e) {
+    console.warn("Failed to load clipboard history:", e);
   }
+}
 
-  async function save() {
-    try {
-      if (typeof window !== "undefined" && (window as any).__TAURI__) {
-        const { invoke } = await import("@tauri-apps/api/core");
-        const raw = await invoke<string>("load_config");
-        const config = raw ? JSON.parse(raw) : {};
-        config._clipboardHistory = entries.value;
-        await invoke("save_config", { config: JSON.stringify(config) });
-      } else {
-        localStorage.setItem(CLIPBOARD_KEY, JSON.stringify(entries.value));
-      }
-    } catch (e) { console.warn("Failed to save clipboard history:", e); }
+async function _save() {
+  try {
+    if (typeof window !== "undefined" && (window as any).__TAURI__) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const raw = await invoke<string>("load_config");
+      const config = raw ? JSON.parse(raw) : {};
+      config._clipboardHistory = _entries.value;
+      await invoke("save_config", { config: JSON.stringify(config) });
+    } else {
+      localStorage.setItem(CLIPBOARD_KEY, JSON.stringify(_entries.value));
+    }
+  } catch (e) {
+    console.warn("Failed to save clipboard history:", e);
   }
+}
 
-  async function readClipboard(): Promise<string> {
-    try {
-      if (typeof window !== "undefined" && (window as any).__TAURI__) {
-        const { readText } = await import("@tauri-apps/plugin-clipboard-manager");
-        return (await readText()) || "";
-      }
-      return await navigator.clipboard.readText();
-    } catch { return ""; }
+async function _readClipboard(): Promise<string> {
+  try {
+    if (typeof window !== "undefined" && (window as any).__TAURI__) {
+      const { readText } = await import("@tauri-apps/plugin-clipboard-manager");
+      return (await readText()) || "";
+    }
+    return await navigator.clipboard.readText();
+  } catch {
+    return "";
   }
+}
 
+async function _pollClipboard() {
+  const text = await _readClipboard();
+  if (text && text !== _lastClipText) {
+    _lastClipText = text;
+    if (_entries.value.length === 0 || _entries.value[0].text !== text) {
+      _entries.value.unshift({ id: generateId(), text, timestamp: Date.now() });
+      if (_entries.value.length > MAX_ENTRIES) _entries.value.pop();
+      _save();
+    }
+  }
+}
+
+/** Call once at app startup (e.g. in index.vue onMounted) */
+export async function initClipboardPolling() {
+  if (_initialized) return;
+  _initialized = true;
+  await _load();
+  _lastClipText = await _readClipboard();
+  if (!_pollInterval) {
+    _pollInterval = setInterval(_pollClipboard, 1500);
+  }
+}
+
+/** Call on app teardown if needed */
+export function disposeClipboardPolling() {
+  if (_pollInterval) {
+    clearInterval(_pollInterval);
+    _pollInterval = null;
+  }
+  _initialized = false;
+}
+
+export function useClipboardHistory() {
   async function writeClipboard(text: string) {
     try {
       if (typeof window !== "undefined" && (window as any).__TAURI__) {
-        const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
+        const { writeText } =
+          await import("@tauri-apps/plugin-clipboard-manager");
         await writeText(text);
       } else {
         await navigator.clipboard.writeText(text);
       }
-      lastClipText = text;
-    } catch (e) { console.warn("Failed to write clipboard:", e); }
-  }
-
-  async function pollClipboard() {
-    const text = await readClipboard();
-    if (text && text !== lastClipText) {
-      lastClipText = text;
-      // Don't add duplicates at top
-      if (entries.value.length === 0 || entries.value[0].text !== text) {
-        entries.value.unshift({ id: generateId(), text, timestamp: Date.now() });
-        if (entries.value.length > MAX_ENTRIES) entries.value.pop();
-        save();
-      }
+      _lastClipText = text;
+    } catch (e) {
+      console.warn("Failed to write clipboard:", e);
     }
   }
 
   function removeEntry(id: string) {
-    entries.value = entries.value.filter((e) => e.id !== id);
-    save();
+    _entries.value = _entries.value.filter((e) => e.id !== id);
+    _save();
   }
 
   function clearAll() {
-    entries.value = [];
-    save();
+    _entries.value = [];
+    _save();
   }
-
-  function startPolling() {
-    if (pollInterval) return;
-    pollInterval = setInterval(pollClipboard, 1500);
-  }
-
-  function stopPolling() {
-    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-  }
-
-  onMounted(async () => {
-    await load();
-    // Initialize lastClipText to current clipboard so we don't immediately add it
-    lastClipText = await readClipboard();
-    startPolling();
-  });
-
-  onUnmounted(() => { stopPolling(); });
 
   return {
-    entries,
+    entries: _entries,
     writeClipboard,
     removeEntry,
     clearAll,
   };
 }
-
