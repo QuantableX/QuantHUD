@@ -1,64 +1,85 @@
 <template>
   <div class="wc-module">
-    <div class="wc-tabs">
-      <button :class="{ active: tab === 'clocks' }" @click="tab = 'clocks'">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          style="vertical-align: middle; margin-right: 3px"
+    <div class="wc-tabs-wrapper">
+      <div class="wc-tabs">
+        <button :class="{ active: tab === 'clocks' }" @click="tab = 'clocks'">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            style="vertical-align: middle; margin-right: 3px"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          Clocks
+        </button>
+      </div>
+      <div class="wc-tabs">
+        <button :class="{ active: tab === 'timer' }" @click="tab = 'timer'">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="vertical-align: middle; margin-right: 3px"
+          >
+            <circle cx="12" cy="13" r="8" />
+            <path d="M12 9v4l2 2" />
+            <path d="M5 3L2 6" />
+            <path d="M22 6l-3-3" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="10" y1="1" x2="14" y2="1" />
+          </svg>
+          Timer
+        </button>
+        <button
+          :class="{ active: tab === 'stopwatch' }"
+          @click="tab = 'stopwatch'"
         >
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
-        Clocks
-      </button>
-      <button :class="{ active: tab === 'timer' }" @click="tab = 'timer'">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          style="vertical-align: middle; margin-right: 3px"
-        >
-          <circle cx="12" cy="13" r="8" />
-          <path d="M12 9v4l2 2" />
-          <path d="M5 3L2 6" />
-          <path d="M22 6l-3-3" />
-          <line x1="12" y1="1" x2="12" y2="3" />
-          <line x1="10" y1="1" x2="14" y2="1" />
-        </svg>
-        Timer
-      </button>
-      <button
-        :class="{ active: tab === 'stopwatch' }"
-        @click="tab = 'stopwatch'"
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          style="vertical-align: middle; margin-right: 3px"
-        >
-          <circle cx="12" cy="13" r="8" />
-          <path d="M12 9v4" />
-          <line x1="12" y1="1" x2="12" y2="3" />
-          <line x1="10" y1="1" x2="14" y2="1" />
-        </svg>
-        Stopwatch
-      </button>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="vertical-align: middle; margin-right: 3px"
+          >
+            <circle cx="12" cy="13" r="8" />
+            <path d="M12 9v4" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="10" y1="1" x2="14" y2="1" />
+          </svg>
+          Stopwatch
+        </button>
+        <button :class="{ active: tab === 'alarm' }" @click="tab = 'alarm'">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="vertical-align: middle; margin-right: 3px"
+          >
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          Alarm
+        </button>
+      </div>
     </div>
     <div v-if="tab === 'clocks'" class="wc-panel">
       <div class="clock-list">
@@ -134,19 +155,25 @@
         </button>
         <button class="btn btn-primary btn-sm" @click="resetTimer">↺</button>
       </div>
-      <div v-if="showAddProfile" class="add-form">
+      <div v-if="showAddProfile" class="add-form-wrap">
         <input v-model="newProfileName" class="input sm" placeholder="Name" />
-        <input
-          v-model.number="newProfileMin"
-          class="input sm"
-          type="number"
-          placeholder="Min"
-          style="width: 60px"
-        />
-        <button class="btn btn-green btn-sm" @click="doAddProfile">Add</button>
-        <button class="btn btn-ghost btn-sm" @click="showAddProfile = false">
-          ✕
-        </button>
+        <div class="add-form-row">
+          <input
+            v-model="newProfileTime"
+            class="input sm time-input"
+            type="time"
+            step="1"
+          />
+          <button class="btn btn-green btn-sm btn-sq" @click="doAddProfile">
+            ✓
+          </button>
+          <button
+            class="btn btn-ghost btn-sm btn-sq"
+            @click="showAddProfile = false"
+          >
+            ✕
+          </button>
+        </div>
       </div>
       <button
         v-else
@@ -210,6 +237,58 @@
         </div>
       </div>
     </div>
+    <!-- Alarm Panel -->
+    <div v-if="tab === 'alarm'" class="wc-panel">
+      <div class="alarm-list">
+        <div v-for="alarm in alarms" :key="alarm.id" class="alarm-row">
+          <button
+            class="alarm-toggle"
+            :class="{ on: alarm.enabled }"
+            @click="toggleAlarm(alarm.id)"
+            :title="alarm.enabled ? 'Disable' : 'Enable'"
+          >
+            {{ alarm.enabled ? "●" : "○" }}
+          </button>
+          <span class="alarm-time">{{ alarm.time }}</span>
+          <span class="alarm-label">{{ alarm.label }}</span>
+          <button
+            class="ctrl-btn ctrl-del"
+            @click="removeAlarm(alarm.id)"
+            title="Delete"
+          >
+            ✕
+          </button>
+        </div>
+        <div v-if="alarms.length === 0" class="alarm-empty">No alarms set</div>
+      </div>
+      <div v-if="showAddAlarm" class="add-form-wrap">
+        <input v-model="newAlarmLabel" class="input sm" placeholder="Label" />
+        <div class="add-form-row">
+          <input
+            v-model="newAlarmTime"
+            class="input sm time-input"
+            type="time"
+            step="1"
+          />
+          <button class="btn btn-green btn-sm btn-sq" @click="doAddAlarm">
+            ✓
+          </button>
+          <button
+            class="btn btn-ghost btn-sm btn-sq"
+            @click="showAddAlarm = false"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      <button
+        v-else
+        class="btn btn-primary add-btn"
+        @click="showAddAlarm = true"
+      >
+        + Add Alarm
+      </button>
+    </div>
   </div>
 </template>
 
@@ -223,10 +302,14 @@ const {
   stopwatchElapsedMs,
   stopwatchRunning,
   stopwatchRounds,
+  alarms,
   addClock,
   removeClock,
   addProfile,
   removeProfile,
+  addAlarm,
+  removeAlarm,
+  toggleAlarm,
   startTimer,
   stopTimer,
   resetTimer,
@@ -236,13 +319,16 @@ const {
   addStopwatchRound,
   clearStopwatchRounds,
 } = useWorldClock();
-const tab = ref<"clocks" | "timer" | "stopwatch">("clocks");
+const tab = ref<"clocks" | "timer" | "stopwatch" | "alarm">("clocks");
 const showAddClock = ref(false);
 const newClockLabel = ref("");
 const newClockTz = ref("Etc/GMT");
 const showAddProfile = ref(false);
 const newProfileName = ref("");
-const newProfileMin = ref(25);
+const newProfileTime = ref("00:25:00");
+const showAddAlarm = ref(false);
+const newAlarmTime = ref("08:00:00");
+const newAlarmLabel = ref("");
 const now = ref(new Date());
 let clockTick: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
@@ -288,11 +374,26 @@ function doAddClock() {
   showAddClock.value = false;
 }
 function doAddProfile() {
-  if (!newProfileName.value.trim() || newProfileMin.value <= 0) return;
-  addProfile(newProfileName.value.trim(), newProfileMin.value * 60);
+  const parts = (newProfileTime.value || "0:0:0").split(":").map(Number);
+  const totalSec =
+    (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0);
+  if (!newProfileName.value.trim() || totalSec <= 0) return;
+  addProfile(newProfileName.value.trim(), totalSec);
   newProfileName.value = "";
-  newProfileMin.value = 25;
+  newProfileTime.value = "00:25:00";
   showAddProfile.value = false;
+}
+function doAddAlarm() {
+  const time = newAlarmTime.value || "08:00:00";
+  // Ensure HH:MM:SS format
+  const parts = time.split(":");
+  const hh = (parts[0] || "00").padStart(2, "0");
+  const mm = (parts[1] || "00").padStart(2, "0");
+  const ss = (parts[2] || "00").padStart(2, "0");
+  addAlarm(`${hh}:${mm}:${ss}`, newAlarmLabel.value.trim());
+  newAlarmTime.value = "08:00:00";
+  newAlarmLabel.value = "";
+  showAddAlarm.value = false;
 }
 function onProfileChange() {
   resetTimer();
@@ -318,10 +419,16 @@ function formatMs(ms: number): string {
   min-height: 0;
   flex: 1;
 }
+.wc-tabs-wrapper {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 .wc-tabs {
   display: flex;
   gap: 6px;
-  margin-bottom: 12px;
   padding-right: 4px;
   flex-shrink: 0;
 }
@@ -408,9 +515,29 @@ function formatMs(ms: number): string {
   align-items: center;
   margin-top: 8px;
 }
-.add-form .input {
-  flex: 1;
-  min-width: 0;
+.add-form-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.add-form-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.time-input {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  text-align: center;
+  padding: 4px 4px !important;
+  color-scheme: dark;
+}
+.btn-sq {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  flex-shrink: 0;
 }
 .add-btn {
   width: 100%;
@@ -504,5 +631,53 @@ function formatMs(ms: number): string {
   font-size: 11px;
   font-family: monospace;
   color: var(--text-secondary);
+}
+/* Alarm styles */
+.alarm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.alarm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+.alarm-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 0;
+  line-height: 1;
+}
+.alarm-toggle.on {
+  color: var(--accent-green);
+}
+.alarm-time {
+  font-size: 15px;
+  font-weight: 600;
+  font-family: monospace;
+  color: var(--text-primary);
+}
+.alarm-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alarm-empty {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 16px 0;
 }
 </style>

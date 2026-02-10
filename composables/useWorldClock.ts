@@ -17,6 +17,13 @@ export interface StopwatchRound {
   totalMs: number;
 }
 
+export interface AlarmEntry {
+  id: string;
+  time: string; // HH:MM:SS (24h)
+  label: string;
+  enabled: boolean;
+}
+
 const WORLDCLOCK_KEY = "quanthud_worldclock";
 
 function generateId(): string {
@@ -45,12 +52,15 @@ export function useWorldClock() {
   const stopwatchElapsedMs = ref(0);
   const stopwatchRunning = ref(false);
   const stopwatchRounds = ref<StopwatchRound[]>([]);
+  const alarms = ref<AlarmEntry[]>([]);
 
   let timerInterval: ReturnType<typeof setInterval> | null = null;
   let stopwatchInterval: ReturnType<typeof setInterval> | null = null;
+  let alarmInterval: ReturnType<typeof setInterval> | null = null;
   let stopwatchStart = 0;
   let timerStart = 0;
   let timerSnapshot = 0;
+  let _lastAlarmSecond = ""; // prevent re-firing same alarm in the same second
 
   // --- Persistence ---
   async function load() {
@@ -65,6 +75,10 @@ export function useWorldClock() {
             timerProfiles.value = config._worldclock.profiles || [
               ...DEFAULT_PROFILES,
             ];
+            alarms.value = config._worldclock.alarms || [];
+            if (timerProfiles.value.length > 0) {
+              activeProfileId.value = timerProfiles.value[0].id;
+            }
             return;
           }
         }
@@ -74,6 +88,10 @@ export function useWorldClock() {
         const data = JSON.parse(saved);
         clocks.value = data.clocks || [...DEFAULT_CLOCKS];
         timerProfiles.value = data.profiles || [...DEFAULT_PROFILES];
+        alarms.value = data.alarms || [];
+        if (timerProfiles.value.length > 0) {
+          activeProfileId.value = timerProfiles.value[0].id;
+        }
       }
     } catch (e) {
       console.warn("Failed to load worldclock:", e);
@@ -82,7 +100,11 @@ export function useWorldClock() {
 
   async function save() {
     try {
-      const payload = { clocks: clocks.value, profiles: timerProfiles.value };
+      const payload = {
+        clocks: clocks.value,
+        profiles: timerProfiles.value,
+        alarms: alarms.value,
+      };
       if (typeof window !== "undefined" && (window as any).__TAURI__) {
         const { invoke } = await import("@tauri-apps/api/core");
         const raw = await invoke<string>("load_config");
@@ -118,6 +140,56 @@ export function useWorldClock() {
     save();
   }
 
+  // Alarm CRUD
+  function addAlarm(time: string, label: string) {
+    alarms.value.push({ id: generateId(), time, label, enabled: true });
+    save();
+  }
+  function removeAlarm(id: string) {
+    alarms.value = alarms.value.filter((a) => a.id !== id);
+    save();
+  }
+  function toggleAlarm(id: string) {
+    const a = alarms.value.find((a) => a.id === id);
+    if (a) a.enabled = !a.enabled;
+    save();
+  }
+
+  // Alarm checker (runs every second)
+  function startAlarmChecker() {
+    if (alarmInterval) return;
+    alarmInterval = setInterval(async () => {
+      const now = new Date();
+      const hhmmss =
+        String(now.getHours()).padStart(2, "0") +
+        ":" +
+        String(now.getMinutes()).padStart(2, "0") +
+        ":" +
+        String(now.getSeconds()).padStart(2, "0");
+      const key = hhmmss + ":" + now.getDate(); // unique per day-second
+      if (key === _lastAlarmSecond) return;
+      for (const alarm of alarms.value) {
+        if (alarm.enabled && alarm.time === hhmmss) {
+          _lastAlarmSecond = key;
+          try {
+            const { invoke } = await import("@tauri-apps/api/core");
+            invoke("show_notification_popup", {
+              message: `⏰ Alarm: ${alarm.label || alarm.time}`,
+            });
+          } catch {
+            // fallback: ignore if not in Tauri
+          }
+        }
+      }
+    }, 1000);
+  }
+  function stopAlarmChecker() {
+    if (alarmInterval) {
+      clearInterval(alarmInterval);
+      alarmInterval = null;
+    }
+  }
+
   // Timer
   function startTimer() {
     if (timerRunning.value) return;
@@ -130,11 +202,20 @@ export function useWorldClock() {
     timerRunning.value = true;
     timerSnapshot = timerRemainingMs.value;
     timerStart = Date.now();
-    timerInterval = setInterval(() => {
+    timerInterval = setInterval(async () => {
       const elapsed = Date.now() - timerStart;
       timerRemainingMs.value = Math.max(0, timerSnapshot - elapsed);
       if (timerRemainingMs.value <= 0) {
         stopTimer();
+        const pName = profile.name || "Timer";
+        try {
+          const { invoke } = await import("@tauri-apps/api/core");
+          invoke("show_notification_popup", {
+            message: `⏱ ${pName} finished!`,
+          });
+        } catch {
+          // fallback: ignore if not in Tauri
+        }
       }
     }, 10);
   }
@@ -197,12 +278,14 @@ export function useWorldClock() {
 
   onMounted(async () => {
     await load();
+    startAlarmChecker();
     _syncCleanup = await onSyncEvent("worldclock", load);
   });
 
   onUnmounted(() => {
     stopTimer();
     stopStopwatch();
+    stopAlarmChecker();
     _syncCleanup?.();
   });
 
@@ -215,10 +298,14 @@ export function useWorldClock() {
     stopwatchElapsedMs,
     stopwatchRunning,
     stopwatchRounds,
+    alarms,
     addClock,
     removeClock,
     addProfile,
     removeProfile,
+    addAlarm,
+    removeAlarm,
+    toggleAlarm,
     startTimer,
     stopTimer,
     resetTimer,

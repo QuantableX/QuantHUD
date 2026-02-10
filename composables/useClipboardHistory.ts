@@ -106,6 +106,8 @@ export function disposeClipboardPolling() {
 export function useClipboardHistory() {
   async function writeClipboard(text: string) {
     try {
+      // Set _lastClipText BEFORE writing so the poll won't re-detect it as new
+      _lastClipText = text;
       if (typeof window !== "undefined" && (window as any).__TAURI__) {
         const { writeText } =
           await import("@tauri-apps/plugin-clipboard-manager");
@@ -113,7 +115,6 @@ export function useClipboardHistory() {
       } else {
         await navigator.clipboard.writeText(text);
       }
-      _lastClipText = text;
     } catch (e) {
       console.warn("Failed to write clipboard:", e);
     }
