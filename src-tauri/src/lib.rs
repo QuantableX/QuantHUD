@@ -2,7 +2,11 @@ mod capture;
 mod config;
 
 use serde::{Deserialize, Serialize};
-use tauri::{Manager, PhysicalPosition, WebviewWindow};
+use tauri::{
+    Manager, PhysicalPosition, WebviewWindow,
+    menu::{Menu, MenuItem},
+    tray::TrayIconBuilder,
+};
 
 /// Get the actual work-area height for a monitor by querying the OS.
 /// Falls back to screen_height - 48*scale on non-Windows or on failure.
@@ -822,6 +826,74 @@ async fn close_screenshot_preview(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Create a second window on the right edge for dual mode
+#[tauri::command]
+async fn create_dual_window(app: tauri::AppHandle, monitor_index: Option<usize>) -> Result<(), String> {
+    use tauri::{WebviewUrl, WebviewWindowBuilder, PhysicalSize};
+
+    // Close existing dual window if any
+    if let Some(existing) = app.get_webview_window("dual-right") {
+        let _ = existing.close();
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+
+    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
+    let monitor = if let Some(idx) = monitor_index {
+        monitors.into_iter().nth(idx).ok_or("Monitor index out of range")?
+    } else {
+        app.primary_monitor()
+            .map_err(|e| e.to_string())?
+            .ok_or("No primary monitor found")?
+    };
+
+    let scale_factor = monitor.scale_factor();
+    let screen_width = monitor.size().width as i32;
+    let window_height = get_work_area_height(&monitor);
+    let window_width = (TOTAL_WIDTH as f64 * scale_factor) as u32;
+
+    let window = WebviewWindowBuilder::new(&app, "dual-right", WebviewUrl::App("/".into()))
+        .title("QuantHUD Right")
+        .inner_size(TOTAL_WIDTH as f64, 900.0)
+        .resizable(false)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .visible(false)
+        .transparent(true)
+        .shadow(false)
+        .build()
+        .map_err(|e| format!("Failed to create dual window: {}", e))?;
+
+    // Size to full height
+    window.set_size(PhysicalSize::new(window_width, window_height as u32))
+        .map_err(|e| e.to_string())?;
+
+    // Position at right edge
+    let monitor_x = monitor.position().x;
+    let monitor_y = monitor.position().y;
+    let x = screen_width - (TRIGGER_WIDTH as f64 * scale_factor) as i32;
+    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y))
+        .map_err(|e| e.to_string())?;
+
+    // Show after positioning
+    let window_clone = window.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let _ = window_clone.show();
+    });
+
+    Ok(())
+}
+
+/// Close the dual-right window if it exists
+#[tauri::command]
+async fn close_dual_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("dual-right") {
+        window.close().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -831,6 +903,37 @@ pub fn run() {
         .manage(RegionState(Mutex::new(None)))
         .manage(PickedColorState(Mutex::new(None)))
         .manage(ScreenshotPreviewState(Mutex::new(None)))
+        .setup(|app| {
+            let show_item = MenuItem::with_id(app, "show", "Show / Hide", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+
+            TrayIconBuilder::new()
+                .icon(app.default_window_icon().cloned().unwrap())
+                .menu(&menu)
+                .tooltip("QuantHUD")
+                .on_menu_event(|app, event| {
+                    match event.id.as_ref() {
+                        "show" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                if window.is_visible().unwrap_or(false) {
+                                    let _ = window.hide();
+                                } else {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
+                            }
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .build(app)?;
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             capture_screen,
             get_cursor_position,
@@ -856,9 +959,10 @@ pub fn run() {
             get_picked_color,
             open_screenshot_preview,
             get_screenshot_preview_path,
-            close_screenshot_preview
+            close_screenshot_preview,
+            create_dual_window,
+            close_dual_window
         ])
-
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

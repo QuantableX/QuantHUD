@@ -1,5 +1,12 @@
 export type CalcMode = "calculator" | "converter";
 
+export interface CalcHistoryEntry {
+  id: string;
+  expression: string;
+  result: string;
+  timestamp: number;
+}
+
 const UNIT_CATEGORIES: Record<
   string,
   {
@@ -95,6 +102,7 @@ export function useGeneralCalc() {
   const display = ref("0");
   const expression = ref("");
   const hasResult = ref(false);
+  const history = ref<CalcHistoryEntry[]>([]);
 
   // Converter state
   const category = ref("Length");
@@ -135,8 +143,9 @@ export function useGeneralCalc() {
     }
     if (key === "=") {
       try {
+        const rawExpr = expression.value;
         // Convert display symbols to math operators before evaluation
-        const mathExpr = expression.value.replace(/÷/g, "/").replace(/×/g, "*");
+        const mathExpr = rawExpr.replace(/÷/g, "/").replace(/×/g, "*");
         const sanitized = mathExpr.replace(/[^0-9+\-*/.()% ]/g, "");
         const processed = sanitized.replace(/(\d+(\.\d+)?)%/g, "($1/100)");
         const result = Function('"use strict"; return (' + processed + ")")();
@@ -146,6 +155,17 @@ export function useGeneralCalc() {
         display.value = formatted;
         expression.value = formatted;
         hasResult.value = true;
+        // Add to history
+        if (formatted !== "Error") {
+          history.value.unshift({
+            id:
+              Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            expression: rawExpr,
+            result: formatted,
+            timestamp: Date.now(),
+          });
+          if (history.value.length > 20) history.value.length = 20;
+        }
       } catch {
         display.value = "Error";
         expression.value = "";
@@ -190,6 +210,20 @@ export function useGeneralCalc() {
     toValue.value = "";
   }
 
+  function clearHistory() {
+    history.value = [];
+  }
+
+  function removeHistoryEntry(id: string) {
+    history.value = history.value.filter((e) => e.id !== id);
+  }
+
+  function replayHistoryEntry(entry: CalcHistoryEntry) {
+    expression.value = entry.expression;
+    display.value = entry.expression;
+    hasResult.value = false;
+  }
+
   const categories = Object.keys(UNIT_CATEGORIES);
   const currentUnits = computed(
     () => UNIT_CATEGORIES[category.value]?.units || [],
@@ -200,6 +234,7 @@ export function useGeneralCalc() {
     display,
     expression,
     hasResult,
+    history,
     category,
     fromUnit,
     toUnit,
@@ -209,6 +244,9 @@ export function useGeneralCalc() {
     convertUnits,
     swapUnits,
     setCategory,
+    clearHistory,
+    removeHistoryEntry,
+    replayHistoryEntry,
     categories,
     currentUnits,
   };

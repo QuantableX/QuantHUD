@@ -92,13 +92,18 @@ function formatTime(ts: number) {
 
 <style scoped>
 .cb-module {
+  display: flex;
+  flex-direction: column;
   padding: 4px 0;
+  min-height: 0;
+  flex: 1;
 }
 .cb-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+  flex-shrink: 0;
 }
 .cb-title {
   font-size: 13px;
@@ -119,8 +124,13 @@ function formatTime(ts: number) {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 500px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 4px;
+  background: var(--bg-secondary);
 }
 .cb-row {
   display: flex;

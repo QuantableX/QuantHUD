@@ -1,6 +1,6 @@
 [package]
 name = "quanthud"
-version = "1.0.1"
+version = "1.0.2"
 description = "QuantHUD - Fibonacci Level Extractor for Trading"
 authors = ["QuantableX"]
 edition = "2021"

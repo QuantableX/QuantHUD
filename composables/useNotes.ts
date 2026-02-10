@@ -51,6 +51,7 @@ export function useNotes() {
         const config = raw ? JSON.parse(raw) : {};
         config._notes = sections.value;
         await invoke("save_config", { config: JSON.stringify(config) });
+        emitSync("notes");
       } else {
         localStorage.setItem(NOTES_KEY, data);
       }
@@ -257,8 +258,15 @@ export function useNotes() {
     saveNotes();
   }
 
-  onMounted(() => {
-    loadNotes();
+  let _syncCleanup: (() => void) | null = null;
+
+  onMounted(async () => {
+    await loadNotes();
+    _syncCleanup = await onSyncEvent("notes", loadNotes);
+  });
+
+  onUnmounted(() => {
+    _syncCleanup?.();
   });
 
   return {

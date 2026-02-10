@@ -89,6 +89,7 @@ export function useWorldClock() {
         const config = raw ? JSON.parse(raw) : {};
         config._worldclock = payload;
         await invoke("save_config", { config: JSON.stringify(config) });
+        emitSync("worldclock");
       } else {
         localStorage.setItem(WORLDCLOCK_KEY, JSON.stringify(payload));
       }
@@ -192,12 +193,17 @@ export function useWorldClock() {
     clearStopwatchRounds();
   }
 
-  onMounted(() => {
-    load();
+  let _syncCleanup: (() => void) | null = null;
+
+  onMounted(async () => {
+    await load();
+    _syncCleanup = await onSyncEvent("worldclock", load);
   });
+
   onUnmounted(() => {
     stopTimer();
     stopStopwatch();
+    _syncCleanup?.();
   });
 
   return {

@@ -12,7 +12,14 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-const COLORS = ["#4a90d9", "#00aa55", "#cc3344", "#e6a817", "#9b59b6", "#e67e22"];
+const COLORS = [
+  "#4a90d9",
+  "#00aa55",
+  "#cc3344",
+  "#e6a817",
+  "#9b59b6",
+  "#e67e22",
+];
 
 export function useCalendar() {
   const appointments = ref<Appointment[]>([]);
@@ -27,12 +34,17 @@ export function useCalendar() {
         const saved = await invoke<string>("load_config");
         if (saved) {
           const config = JSON.parse(saved);
-          if (config._calendar) { appointments.value = config._calendar; return; }
+          if (config._calendar) {
+            appointments.value = config._calendar;
+            return;
+          }
         }
       }
       const saved = localStorage.getItem(CALENDAR_KEY);
       if (saved) appointments.value = JSON.parse(saved);
-    } catch (e) { console.warn("Failed to load calendar:", e); }
+    } catch (e) {
+      console.warn("Failed to load calendar:", e);
+    }
   }
 
   async function save() {
@@ -43,13 +55,21 @@ export function useCalendar() {
         const config = raw ? JSON.parse(raw) : {};
         config._calendar = appointments.value;
         await invoke("save_config", { config: JSON.stringify(config) });
+        emitSync("calendar");
       } else {
         localStorage.setItem(CALENDAR_KEY, JSON.stringify(appointments.value));
       }
-    } catch (e) { console.warn("Failed to save calendar:", e); }
+    } catch (e) {
+      console.warn("Failed to save calendar:", e);
+    }
   }
 
-  function addAppointment(title: string, date: string, time: string, color?: string) {
+  function addAppointment(
+    title: string,
+    date: string,
+    time: string,
+    color?: string,
+  ) {
     appointments.value.push({
       id: generateId(),
       title,
@@ -65,7 +85,10 @@ export function useCalendar() {
     save();
   }
 
-  function updateAppointment(id: string, updates: Partial<Omit<Appointment, "id">>) {
+  function updateAppointment(
+    id: string,
+    updates: Partial<Omit<Appointment, "id">>,
+  ) {
     const a = appointments.value.find((a) => a.id === id);
     if (a) {
       Object.assign(a, updates);
@@ -105,13 +128,30 @@ export function useCalendar() {
     }
   }
 
-  onMounted(() => { load(); });
+  let _syncCleanup: (() => void) | null = null;
+
+  onMounted(async () => {
+    await load();
+    _syncCleanup = await onSyncEvent("calendar", load);
+  });
+
+  onUnmounted(() => {
+    _syncCleanup?.();
+  });
 
   return {
-    appointments, selectedDate, currentMonth, currentYear,
-    addAppointment, removeAppointment, updateAppointment,
-    getAppointmentsForDate, getDaysInMonth, getFirstDayOfMonth,
-    prevMonth, nextMonth, COLORS,
+    appointments,
+    selectedDate,
+    currentMonth,
+    currentYear,
+    addAppointment,
+    removeAppointment,
+    updateAppointment,
+    getAppointmentsForDate,
+    getDaysInMonth,
+    getFirstDayOfMonth,
+    prevMonth,
+    nextMonth,
+    COLORS,
   };
 }
-

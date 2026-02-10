@@ -42,66 +42,32 @@
         <!-- Window Position -->
         <div class="setting-group">
           <label class="setting-label">Window Position</label>
-          <div class="setting-options">
-            <button
-              class="btn option-btn"
-              :class="{ active: position === 'left' }"
-              @click="setPosition('left')"
-            >
-              ◀ Left
-            </button>
-            <button
-              class="btn option-btn"
-              :class="{ active: position === 'right' }"
-              @click="setPosition('right')"
-            >
-              Right ▶
-            </button>
-          </div>
+          <select
+            class="setting-select"
+            :value="position"
+            @change="
+              setPosition(($event.target as HTMLSelectElement).value as any)
+            "
+          >
+            <option value="left">◀ Left</option>
+            <option value="right">Right ▶</option>
+            <option value="dual">◀ Dual ▶</option>
+          </select>
         </div>
 
         <!-- Color Theme -->
         <div class="setting-group">
           <label class="setting-label">Color Theme</label>
-          <div class="setting-options">
-            <button
-              class="btn option-btn"
-              :class="{ active: theme === 'default' }"
-              @click="setTheme('default')"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                style="margin-right: 4px; vertical-align: middle"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 2a10 10 0 0 0 0 20" />
-              </svg>
-              Default
-            </button>
-            <button
-              class="btn option-btn"
-              :class="{ active: theme === 'monochrome' }"
-              @click="setTheme('monochrome')"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                style="margin-right: 4px; vertical-align: middle"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-              </svg>
-              Monochrome
-            </button>
-          </div>
+          <select
+            class="setting-select"
+            :value="theme"
+            @change="
+              setTheme(($event.target as HTMLSelectElement).value as any)
+            "
+          >
+            <option value="default">Default</option>
+            <option value="monochrome">Monochrome</option>
+          </select>
         </div>
       </div>
     </div>
@@ -199,21 +165,31 @@ function setTheme(t: ColorTheme) {
   margin-bottom: 8px;
 }
 
-.setting-options {
-  display: flex;
-  gap: 8px;
-}
-
-.option-btn {
-  flex: 1;
+.setting-select {
+  width: 100%;
+  padding: 10px 12px;
   background: var(--input-bg);
   border: 1px solid var(--border-color);
-  color: #aaa;
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.option-btn.active {
-  background: #444;
-  border-color: #555;
-  color: white;
+.setting-select:hover {
+  border-color: var(--accent-blue);
+  background: var(--bg-secondary);
+}
+
+.setting-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background: var(--bg-secondary);
+}
+
+.setting-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 </style>

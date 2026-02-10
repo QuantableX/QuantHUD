@@ -69,6 +69,7 @@ export function useTodos() {
         const config = raw ? JSON.parse(raw) : {};
         config._todos = sections.value;
         await invoke("save_config", { config: JSON.stringify(config) });
+        emitSync("todos");
       } else {
         localStorage.setItem(TODOS_KEY, data);
       }
@@ -330,8 +331,15 @@ export function useTodos() {
     }
   }
 
-  onMounted(() => {
-    loadTodos();
+  let _syncCleanup: (() => void) | null = null;
+
+  onMounted(async () => {
+    await loadTodos();
+    _syncCleanup = await onSyncEvent("todos", loadTodos);
+  });
+
+  onUnmounted(() => {
+    _syncCleanup?.();
   });
 
   return {

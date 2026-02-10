@@ -1,6 +1,6 @@
 import type { CalculatorInputs } from "./useCalculator";
 
-export type WindowPosition = "left" | "right";
+export type WindowPosition = "left" | "right" | "dual";
 export type ColorTheme = "default" | "monochrome";
 export type TriggerStyle = "column" | "halfcircle";
 export type ActivationMode = "hover" | "click";
@@ -58,6 +58,7 @@ export function useConfig() {
       if (window.__TAURI__) {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("save_config", { config: data });
+        emitSync("config");
       } else {
         localStorage.setItem(CONFIG_KEY, data);
       }
@@ -106,9 +107,16 @@ export function useConfig() {
     saveConfig();
   }
 
+  let _syncCleanup: (() => void) | null = null;
+
   // Load on init
-  onMounted(() => {
-    loadConfig();
+  onMounted(async () => {
+    await loadConfig();
+    _syncCleanup = await onSyncEvent("config", loadConfig);
+  });
+
+  onUnmounted(() => {
+    _syncCleanup?.();
   });
 
   return {

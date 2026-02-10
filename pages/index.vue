@@ -313,140 +313,87 @@
             <!-- Window Position -->
             <div class="setting-group">
               <label class="setting-label">Window Position</label>
-              <div class="setting-options">
-                <button
-                  class="btn option-btn"
-                  :class="{ active: config.windowPosition === 'left' }"
-                  @click="handlePositionChange('left')"
-                >
-                  ◀ Left
-                </button>
-                <button
-                  class="btn option-btn"
-                  :class="{ active: config.windowPosition === 'right' }"
-                  @click="handlePositionChange('right')"
-                >
-                  Right ▶
-                </button>
-              </div>
+              <select
+                class="monitor-select"
+                :value="config.windowPosition || 'left'"
+                @change="
+                  handlePositionChange(
+                    ($event.target as HTMLSelectElement).value as any,
+                  )
+                "
+              >
+                <option value="left">◀ Left</option>
+                <option value="right">Right ▶</option>
+                <option value="dual">◀ Dual ▶</option>
+              </select>
             </div>
 
             <!-- Color Theme -->
             <div class="setting-group">
               <label class="setting-label">Color Theme</label>
-              <div class="setting-options">
-                <button
-                  class="btn option-btn"
-                  :class="{ active: config.colorTheme === 'default' }"
-                  @click="handleThemeChange('default')"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    style="margin-right: 4px; vertical-align: middle"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 2a10 10 0 0 0 0 20" />
-                  </svg>
-                  Default
-                </button>
-                <button
-                  class="btn option-btn"
-                  :class="{ active: config.colorTheme === 'monochrome' }"
-                  @click="handleThemeChange('monochrome')"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    style="margin-right: 4px; vertical-align: middle"
-                  >
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                  </svg>
-                  Monochrome
-                </button>
-              </div>
+              <select
+                class="monitor-select"
+                :value="config.colorTheme || 'default'"
+                @change="
+                  handleThemeChange(
+                    ($event.target as HTMLSelectElement).value as any,
+                  )
+                "
+              >
+                <option value="default">Default</option>
+                <option value="monochrome">Monochrome</option>
+              </select>
             </div>
 
             <!-- Trigger Style -->
             <div class="setting-group">
               <label class="setting-label">Trigger Style</label>
-              <div class="setting-options">
-                <button
-                  class="btn option-btn"
-                  :class="{
-                    active:
-                      config.triggerStyle === 'halfcircle' ||
-                      !config.triggerStyle,
-                  }"
-                  @click="handleTriggerStyleChange('halfcircle')"
-                >
-                  ◗ Half Circle
-                </button>
-                <button
-                  class="btn option-btn"
-                  :class="{ active: config.triggerStyle === 'column' }"
-                  @click="handleTriggerStyleChange('column')"
-                >
-                  ▮ Column
-                </button>
-              </div>
+              <select
+                class="monitor-select"
+                :value="config.triggerStyle || 'halfcircle'"
+                @change="
+                  handleTriggerStyleChange(
+                    ($event.target as HTMLSelectElement).value as any,
+                  )
+                "
+              >
+                <option value="halfcircle">Half Circle</option>
+                <option value="column">Column</option>
+              </select>
             </div>
 
             <!-- Activation Mode -->
             <div class="setting-group">
               <label class="setting-label">Activation Mode</label>
-              <div class="setting-options">
-                <button
-                  class="btn option-btn"
-                  :class="{
-                    active:
-                      config.activationMode === 'hover' ||
-                      !config.activationMode,
-                  }"
-                  @click="handleActivationModeChange('hover')"
-                >
-                  ☛ Hover
-                </button>
-                <button
-                  class="btn option-btn"
-                  :class="{ active: config.activationMode === 'click' }"
-                  @click="handleActivationModeChange('click')"
-                >
-                  ✦ Click
-                </button>
-              </div>
+              <select
+                class="monitor-select"
+                :value="config.activationMode || 'hover'"
+                @change="
+                  handleActivationModeChange(
+                    ($event.target as HTMLSelectElement).value as any,
+                  )
+                "
+              >
+                <option value="hover">Hover</option>
+                <option value="click">Click</option>
+              </select>
             </div>
 
             <!-- Display Mode -->
             <div class="setting-group">
               <label class="setting-label">Display Mode</label>
-              <div class="setting-options">
-                <button
-                  class="btn option-btn"
-                  :class="{
-                    active:
-                      config.displayMode === 'basic' || !config.displayMode,
-                  }"
-                  @click="handleDisplayModeChange('basic')"
-                >
-                  Basic
-                </button>
-                <button
-                  class="btn option-btn"
-                  :class="{ active: config.displayMode === 'pro' }"
-                  @click="handleDisplayModeChange('pro')"
-                >
-                  Pro
-                </button>
-              </div>
+              <select
+                class="monitor-select"
+                :value="config.displayMode || 'basic'"
+                @change="
+                  handleDisplayModeChange(
+                    ($event.target as HTMLSelectElement).value as any,
+                  )
+                "
+              >
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
+              </select>
             </div>
           </div>
         </div>
@@ -470,7 +417,10 @@
         </div>
 
         <!-- General Calculator Module -->
-        <div v-else-if="activeModule === 'gen-calc'" class="module-content">
+        <div
+          v-else-if="activeModule === 'gen-calc'"
+          class="module-content module-content--fill"
+        >
           <GeneralCalcModule />
         </div>
 
@@ -480,7 +430,10 @@
         </div>
 
         <!-- Clipboard History Module -->
-        <div v-else-if="activeModule === 'clipboard'" class="module-content">
+        <div
+          v-else-if="activeModule === 'clipboard'"
+          class="module-content module-content--fill"
+        >
           <ClipboardHistoryModule />
         </div>
 
@@ -626,7 +579,14 @@ const homeAdvancedModules = computed(() =>
   homeModules.filter((m) => !generalHomeIds.includes(m.id)),
 );
 
-const windowPosition = computed(() => config.value.windowPosition || "left");
+const windowLabel = ref("main");
+const windowPosition = computed(() => {
+  const pos = config.value.windowPosition || "left";
+  if (pos === "dual") {
+    return windowLabel.value === "dual-right" ? "right" : "left";
+  }
+  return pos;
+});
 const triggerStyle = computed(() => config.value.triggerStyle || "halfcircle");
 const activationMode = computed(() => config.value.activationMode || "hover");
 const availableMonitors = ref<
@@ -659,6 +619,15 @@ onMounted(async () => {
     const core = await import("@tauri-apps/api/core");
     invoke = core.invoke;
 
+    // Detect current window label (main vs dual-right)
+    try {
+      const { getCurrentWebviewWindow } =
+        await import("@tauri-apps/api/webviewWindow");
+      windowLabel.value = getCurrentWebviewWindow().label;
+    } catch (e) {
+      console.warn("Failed to get window label:", e);
+    }
+
     // Load available monitors
     try {
       availableMonitors.value = await invoke("get_available_monitors");
@@ -678,11 +647,33 @@ onMounted(async () => {
     await invoke("setup_window_size", {
       monitorIndex: config.value.monitorIndex,
     });
+
+    // Determine effective tuck position
+    const configPos = config.value.windowPosition || "left";
+    const tuckPos =
+      configPos === "dual"
+        ? windowLabel.value === "dual-right"
+          ? "right"
+          : "left"
+        : configPos;
+
     // Start tucked
     await invoke("tuck_window", {
-      position: config.value.windowPosition || "left",
+      position: tuckPos,
       monitorIndex: config.value.monitorIndex,
     });
+
+    // In dual mode, the main window must spawn the dual-right window on startup
+    if (configPos === "dual" && windowLabel.value === "main") {
+      try {
+        await invoke("create_dual_window", {
+          monitorIndex: config.value.monitorIndex,
+        });
+      } catch (e) {
+        console.warn("Failed to create dual window on startup:", e);
+      }
+    }
+
     try {
       const { register } = await import("@tauri-apps/plugin-global-shortcut");
       await register("F9", handleCapture);
@@ -831,13 +822,32 @@ async function copyToClipboard(value: string) {
   }
 }
 
-async function handlePositionChange(position: "left" | "right") {
+async function handlePositionChange(position: "left" | "right" | "dual") {
   setWindowPosition(position);
   if (isTauri && invoke) {
-    await invoke("set_window_position", {
-      position,
-      monitorIndex: config.value.monitorIndex,
-    });
+    // Always close any existing dual window first
+    try {
+      await invoke("close_dual_window");
+    } catch (_) {
+      /* ignore if no dual window exists */
+    }
+
+    if (position === "dual") {
+      // Position main window to left
+      await invoke("set_window_position", {
+        position: "left",
+        monitorIndex: config.value.monitorIndex,
+      });
+      // Create dual window on right
+      await invoke("create_dual_window", {
+        monitorIndex: config.value.monitorIndex,
+      });
+    } else {
+      await invoke("set_window_position", {
+        position,
+        monitorIndex: config.value.monitorIndex,
+      });
+    }
   }
 }
 
@@ -872,6 +882,19 @@ async function handleMonitorChange(event: Event) {
         monitorIndex,
       });
       isTucked.value = false;
+    }
+
+    // In dual mode, also move the dual-right window to the new monitor
+    if (
+      config.value.windowPosition === "dual" &&
+      windowLabel.value === "main"
+    ) {
+      try {
+        await invoke("close_dual_window");
+        await invoke("create_dual_window", { monitorIndex });
+      } catch (_) {
+        /* ignore */
+      }
     }
   }
 }
@@ -1144,30 +1167,6 @@ function applyTheme() {
   color: var(--text-secondary);
   margin-bottom: 8px;
   font-weight: 500;
-}
-
-.setting-options {
-  display: flex;
-  gap: 8px;
-}
-
-.option-btn {
-  flex: 1;
-  background: var(--input-bg);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.option-btn.active {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
-  color: white;
-}
-
-.option-btn:hover:not(.active) {
-  background: var(--bg-secondary);
-  border-color: var(--accent-blue);
 }
 
 .monitor-select {

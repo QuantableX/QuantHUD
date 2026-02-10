@@ -42,6 +42,7 @@ export function useColorPicker() {
         const config = raw ? JSON.parse(raw) : {};
         config._colorpicker = savedColors.value;
         await invoke("save_config", { config: JSON.stringify(config) });
+        emitSync("colorpicker");
       } else {
         localStorage.setItem(
           COLORPICKER_KEY,
@@ -165,8 +166,15 @@ export function useColorPicker() {
     }
   }
 
-  onMounted(() => {
-    load();
+  let _syncCleanup: (() => void) | null = null;
+
+  onMounted(async () => {
+    await load();
+    _syncCleanup = await onSyncEvent("colorpicker", load);
+  });
+
+  onUnmounted(() => {
+    _syncCleanup?.();
   });
 
   return {

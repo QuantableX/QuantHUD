@@ -45,6 +45,7 @@ async function _save() {
       const config = raw ? JSON.parse(raw) : {};
       config._clipboardHistory = _entries.value;
       await invoke("save_config", { config: JSON.stringify(config) });
+      emitSync("clipboard");
     } else {
       localStorage.setItem(CLIPBOARD_KEY, JSON.stringify(_entries.value));
     }
@@ -77,6 +78,8 @@ async function _pollClipboard() {
   }
 }
 
+let _syncCleanup: (() => void) | null = null;
+
 /** Call once at app startup (e.g. in index.vue onMounted) */
 export async function initClipboardPolling() {
   if (_initialized) return;
@@ -86,6 +89,7 @@ export async function initClipboardPolling() {
   if (!_pollInterval) {
     _pollInterval = setInterval(_pollClipboard, 1500);
   }
+  _syncCleanup = await onSyncEvent("clipboard", _load);
 }
 
 /** Call on app teardown if needed */
@@ -94,6 +98,8 @@ export function disposeClipboardPolling() {
     clearInterval(_pollInterval);
     _pollInterval = null;
   }
+  _syncCleanup?.();
+  _syncCleanup = null;
   _initialized = false;
 }
 
