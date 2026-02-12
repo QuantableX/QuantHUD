@@ -70,14 +70,17 @@ async fn capture_screen(region: Option<[i32; 4]>) -> Result<CaptureResult, Strin
 const CONTENT_WIDTH: i32 = 320; // Width of main content area
 const TRIGGER_WIDTH: i32 = 20;  // Width of trigger bar
 const TOTAL_WIDTH: i32 = CONTENT_WIDTH + TRIGGER_WIDTH; // 340px
+const HALF_CIRCLE_HEIGHT: i32 = 48; // Height of the half-circle trigger tab (CSS 44px + border padding)
 
 // Tucking resizes window to only show trigger zone (20px)
 // Showing expands window to full width (340px)
 // Position parameter determines which edge the window sticks to
 
 /// Tuck window - shrink to trigger zone width only
+/// When trigger_style is "halfcircle", the window shrinks to just the tab size
+/// so clicks pass through the rest of the screen edge.
 #[tauri::command]
-async fn tuck_window(window: WebviewWindow, position: String, monitor_index: Option<usize>) -> Result<(), String> {
+async fn tuck_window(window: WebviewWindow, position: String, monitor_index: Option<usize>, trigger_style: Option<String>) -> Result<(), String> {
     let app = window.app_handle();
     let monitors = app.available_monitors().map_err(|e| e.to_string())?;
     let monitor = if let Some(idx) = monitor_index {
@@ -90,7 +93,17 @@ async fn tuck_window(window: WebviewWindow, position: String, monitor_index: Opt
 
     let scale_factor = monitor.scale_factor();
     let screen_width = monitor.size().width as i32;
-    let window_height = get_work_area_height(&monitor);
+    let work_area_height = get_work_area_height(&monitor);
+
+    let is_halfcircle = trigger_style.as_deref() == Some("halfcircle");
+
+    // For half-circle mode: window is only as tall as the tab
+    // For column mode: window spans the full work area height
+    let window_height = if is_halfcircle {
+        (HALF_CIRCLE_HEIGHT as f64 * scale_factor) as i32
+    } else {
+        work_area_height
+    };
 
     // Set new size with correct height (in physical pixels)
     window.set_size(tauri::PhysicalSize::new(
@@ -109,7 +122,14 @@ async fn tuck_window(window: WebviewWindow, position: String, monitor_index: Opt
     let monitor_x = monitor.position().x;
     let monitor_y = monitor.position().y;
 
-    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y))
+    // For half-circle: center vertically in the work area
+    let y = if is_halfcircle {
+        (work_area_height - window_height) / 2
+    } else {
+        0
+    };
+
+    window.set_position(PhysicalPosition::new(monitor_x + x, monitor_y + y))
         .map_err(|e| e.to_string())?;
 
     Ok(())

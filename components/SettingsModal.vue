@@ -65,8 +65,8 @@
               setTheme(($event.target as HTMLSelectElement).value as any)
             "
           >
-            <option value="default">Default</option>
-            <option value="monochrome">Monochrome</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
           </select>
         </div>
       </div>

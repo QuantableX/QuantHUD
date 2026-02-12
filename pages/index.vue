@@ -333,15 +333,15 @@
               <label class="setting-label">Color Theme</label>
               <select
                 class="monitor-select"
-                :value="config.colorTheme || 'default'"
+                :value="config.colorTheme || 'dark'"
                 @change="
                   handleThemeChange(
                     ($event.target as HTMLSelectElement).value as any,
                   )
                 "
               >
-                <option value="default">Default</option>
-                <option value="monochrome">Monochrome</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
               </select>
             </div>
 
@@ -628,6 +628,18 @@ onMounted(async () => {
       console.warn("Failed to get window label:", e);
     }
 
+    // Listen for theme changes from the other window (dual mode)
+    try {
+      const { listen } = await import("@tauri-apps/api/event");
+      await listen<string>("theme-changed", (event) => {
+        const theme = event.payload as "light" | "dark";
+        setColorTheme(theme);
+        applyTheme();
+      });
+    } catch (e) {
+      console.warn("Failed to listen for theme changes:", e);
+    }
+
     // Load available monitors
     try {
       availableMonitors.value = await invoke("get_available_monitors");
@@ -661,6 +673,7 @@ onMounted(async () => {
     await invoke("tuck_window", {
       position: tuckPos,
       monitorIndex: config.value.monitorIndex,
+      triggerStyle: triggerStyle.value,
     });
 
     // In dual mode, the main window must spawn the dual-right window on startup
@@ -701,6 +714,7 @@ async function onMouseLeave() {
     await invoke("tuck_window", {
       position: windowPosition.value,
       monitorIndex: config.value.monitorIndex,
+      triggerStyle: triggerStyle.value,
     });
   }
   isTucked.value = true;
@@ -715,6 +729,7 @@ async function onTriggerClick() {
       await invoke("tuck_window", {
         position: windowPosition.value,
         monitorIndex: config.value.monitorIndex,
+        triggerStyle: triggerStyle.value,
       });
     }
     isTucked.value = true;
@@ -864,6 +879,7 @@ async function handleMonitorChange(event: Event) {
       await invoke("tuck_window", {
         position: windowPosition.value,
         monitorIndex: config.value.monitorIndex, // Use current monitor for tuck
+        triggerStyle: triggerStyle.value,
       });
       isTucked.value = true;
     }
@@ -873,6 +889,7 @@ async function handleMonitorChange(event: Event) {
     await invoke("tuck_window", {
       position: windowPosition.value,
       monitorIndex,
+      triggerStyle: triggerStyle.value,
     });
 
     // If it wasn't tucked before, show it again on the new monitor
@@ -899,9 +916,19 @@ async function handleMonitorChange(event: Event) {
   }
 }
 
-function handleThemeChange(theme: "default" | "monochrome") {
+async function handleThemeChange(theme: "light" | "dark") {
   setColorTheme(theme);
   applyTheme();
+  // Broadcast to other windows (dual mode)
+  if (isTauri) {
+    try {
+      const { emitTo } = await import("@tauri-apps/api/event");
+      const target = windowLabel.value === "main" ? "dual-right" : "main";
+      await emitTo(target, "theme-changed", theme);
+    } catch (_) {
+      /* ignore if target window doesn't exist */
+    }
+  }
 }
 
 function handleTriggerStyleChange(style: "column" | "halfcircle") {

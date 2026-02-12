@@ -1,22 +1,6 @@
-:root {
-  --bg-primary: #0d0d1a;
-  --bg-secondary: #1a1a2e;
-  --bg-card: #16213e;
-  --text-primary: #e8e8e8;
-  --text-secondary: #a0a0a0;
-  --accent-green: #00ff88;
-  --accent-green-dim: #00aa55;
-  --accent-red: #ff4466;
-  --accent-red-dim: #cc3344;
-  --accent-blue: #4a90d9;
-  --border-color: #2a2a4a;
-  --input-bg: #1e1e3e;
-  --btn-primary: #444;
-  --btn-primary-hover: #666;
-}
-
-/* Monochrome Theme */
-[data-theme="monochrome"] {
+/* Dark Theme (base) */
+:root,
+[data-theme="dark"] {
   --bg-primary: #121212;
   --bg-secondary: #1e1e1e;
   --bg-card: #252525;
@@ -31,6 +15,24 @@
   --input-bg: #1a1a1a;
   --btn-primary: #444;
   --btn-primary-hover: #666;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg-primary: #f0f0f0;
+  --bg-secondary: #e4e4e4;
+  --bg-card: #ffffff;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --accent-green: #222222;
+  --accent-green-dim: #888888;
+  --accent-red: #444444;
+  --accent-red-dim: #999999;
+  --accent-blue: #555555;
+  --border-color: #cccccc;
+  --input-bg: #f5f5f5;
+  --btn-primary: #bbb;
+  --btn-primary-hover: #999;
 }
 
 * {

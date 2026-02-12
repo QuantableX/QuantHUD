@@ -1,7 +1,7 @@
 import type { CalculatorInputs } from "./useCalculator";
 
 export type WindowPosition = "left" | "right" | "dual";
-export type ColorTheme = "default" | "monochrome";
+export type ColorTheme = "light" | "dark";
 export type TriggerStyle = "column" | "halfcircle";
 export type ActivationMode = "hover" | "click";
 export type DisplayMode = "basic" | "pro";
@@ -24,7 +24,7 @@ export function useConfig() {
     scanRegion: null,
     calcSettings: {},
     windowPosition: "left",
-    colorTheme: "default",
+    colorTheme: "dark",
     triggerStyle: "halfcircle",
     activationMode: "hover",
     monitorIndex: 0,
