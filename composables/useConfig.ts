@@ -15,6 +15,7 @@ export interface AppConfig {
   activationMode: ActivationMode;
   monitorIndex: number;
   displayMode: DisplayMode;
+  screenshotsFolder: string;
 }
 
 const CONFIG_KEY = "quanthub_config";
@@ -29,6 +30,7 @@ export function useConfig() {
     activationMode: "hover",
     monitorIndex: 0,
     displayMode: "basic",
+    screenshotsFolder: "",
   });
 
   async function loadConfig() {
@@ -107,6 +109,11 @@ export function useConfig() {
     saveConfig();
   }
 
+  function setScreenshotsFolder(folder: string) {
+    config.value.screenshotsFolder = folder;
+    saveConfig();
+  }
+
   let _syncCleanup: (() => void) | null = null;
 
   // Load on init
@@ -131,5 +138,6 @@ export function useConfig() {
     setActivationMode,
     setMonitorIndex,
     setDisplayMode,
+    setScreenshotsFolder,
   };
 }

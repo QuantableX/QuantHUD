@@ -392,11 +392,43 @@ pub struct OsScreenshot {
     pub modified: u64,
 }
 
-/// List screenshots from the OS screenshots folder
+/// Open a native folder picker dialog and return the selected path
 #[tauri::command]
-async fn list_os_screenshots() -> Result<Vec<OsScreenshot>, String> {
+async fn pick_folder(default_path: Option<String>) -> Result<Option<String>, String> {
+    let mut dialog = rfd::FileDialog::new();
+    if let Some(ref path) = default_path {
+        if !path.is_empty() {
+            dialog = dialog.set_directory(path);
+        }
+    }
+    match dialog.pick_folder() {
+        Some(path) => Ok(Some(path.to_string_lossy().to_string())),
+        None => Ok(None),
+    }
+}
+
+/// Get the default screenshots folder path
+#[tauri::command]
+async fn get_default_screenshots_folder() -> Result<String, String> {
     let pictures = dirs::picture_dir().ok_or("Cannot find Pictures directory")?;
     let ss_dir = pictures.join("Screenshots");
+    Ok(ss_dir.to_string_lossy().to_string())
+}
+
+/// List screenshots from the OS screenshots folder (or custom folder)
+#[tauri::command]
+async fn list_os_screenshots(custom_folder: Option<String>) -> Result<Vec<OsScreenshot>, String> {
+    let ss_dir = if let Some(ref folder) = custom_folder {
+        if !folder.is_empty() {
+            std::path::PathBuf::from(folder)
+        } else {
+            let pictures = dirs::picture_dir().ok_or("Cannot find Pictures directory")?;
+            pictures.join("Screenshots")
+        }
+    } else {
+        let pictures = dirs::picture_dir().ok_or("Cannot find Pictures directory")?;
+        pictures.join("Screenshots")
+    };
     if !ss_dir.exists() {
         return Ok(vec![]);
     }
@@ -445,9 +477,18 @@ async fn read_screenshot_thumbnail(path: String, max_width: u32) -> Result<Strin
 
 /// Open the OS screenshots folder in file explorer
 #[tauri::command]
-async fn open_screenshots_folder() -> Result<(), String> {
-    let pictures = dirs::picture_dir().ok_or("Cannot find Pictures directory")?;
-    let ss_dir = pictures.join("Screenshots");
+async fn open_screenshots_folder(custom_folder: Option<String>) -> Result<(), String> {
+    let ss_dir = if let Some(ref folder) = custom_folder {
+        if !folder.is_empty() {
+            std::path::PathBuf::from(folder)
+        } else {
+            let pictures = dirs::picture_dir().ok_or("Cannot find Pictures directory")?;
+            pictures.join("Screenshots")
+        }
+    } else {
+        let pictures = dirs::picture_dir().ok_or("Cannot find Pictures directory")?;
+        pictures.join("Screenshots")
+    };
     if !ss_dir.exists() {
         std::fs::create_dir_all(&ss_dir).map_err(|e| e.to_string())?;
     }
@@ -1231,6 +1272,8 @@ pub fn run() {
             set_selected_region,
             get_selected_region,
             pick_screen_color,
+            pick_folder,
+            get_default_screenshots_folder,
             list_os_screenshots,
             read_screenshot_file,
             read_screenshot_thumbnail,

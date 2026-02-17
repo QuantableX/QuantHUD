@@ -36,8 +36,14 @@
       </header>
 
       <div class="modal-content">
-        <!-- Version -->
+        <!-- Version + Update Check -->
         <div class="version-badge">v{{ appVersion }}</div>
+        <button class="btn btn-ghost update-btn" :disabled="updateChecking" @click="checkForUpdate">
+          {{ updateChecking ? 'Checking...' : 'Check for Updates' }}
+        </button>
+        <div v-if="updateStatus" class="update-status" :class="{ 'update-available': updateAvailable }">
+          {{ updateStatus }}
+        </div>
 
         <!-- Window Position -->
         <div class="setting-group">
@@ -69,6 +75,26 @@
             <option value="dark">Dark</option>
           </select>
         </div>
+
+        <!-- Screenshots Folder -->
+        <div class="setting-group">
+          <label class="setting-label">Screenshots Folder</label>
+          <div class="folder-picker">
+            <div class="folder-path" :title="screenshotsFolder || defaultScreenshotsFolder || 'Pictures/Screenshots'">
+              {{ screenshotsFolder || defaultScreenshotsFolder || 'Pictures/Screenshots' }}
+            </div>
+            <button class="btn btn-ghost folder-browse-btn" @click="browseFolder">
+              Browse
+            </button>
+          </div>
+          <button
+            v-if="screenshotsFolder"
+            class="btn btn-ghost btn-sm reset-btn"
+            @click="setScreenshotsFolder('')"
+          >
+            Reset to Default
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -84,13 +110,77 @@ const props = defineProps<{
   isOpen: boolean;
   position: WindowPosition;
   theme: ColorTheme;
+  screenshotsFolder: string;
 }>();
 
 const emit = defineEmits<{
   close: [];
   "update:position": [value: WindowPosition];
   "update:theme": [value: ColorTheme];
+  "update:screenshotsFolder": [value: string];
 }>();
+
+const defaultScreenshotsFolder = ref("");
+const updateChecking = ref(false);
+const updateStatus = ref("");
+const updateAvailable = ref(false);
+
+onMounted(async () => {
+  try {
+    if (typeof window !== "undefined" && (window as any).__TAURI__) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      defaultScreenshotsFolder.value = await invoke<string>("get_default_screenshots_folder");
+    }
+  } catch (e) {
+    console.warn("Failed to get default screenshots folder:", e);
+  }
+});
+
+async function checkForUpdate() {
+  updateChecking.value = true;
+  updateStatus.value = "";
+  updateAvailable.value = false;
+  try {
+    const res = await fetch(
+      "https://api.github.com/repos/QuantableX/QuantHUD/releases/latest"
+    );
+    if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+    const data = await res.json();
+    const latestVersion = (data.tag_name || "").replace(/^v/, "");
+    const currentVersion = appVersion as string;
+    if (latestVersion && latestVersion !== currentVersion) {
+      updateAvailable.value = true;
+      updateStatus.value = `Update available: v${latestVersion}`;
+      // Open the release page
+      if (typeof window !== "undefined" && (window as any).__TAURI__) {
+        const { open } = await import("@tauri-apps/plugin-shell");
+        await open(data.html_url);
+      }
+    } else {
+      updateStatus.value = "You are on the latest version.";
+    }
+  } catch (e: any) {
+    updateStatus.value = "Failed to check for updates.";
+    console.warn("Update check failed:", e);
+  } finally {
+    updateChecking.value = false;
+  }
+}
+
+async function browseFolder() {
+  try {
+    if (typeof window !== "undefined" && (window as any).__TAURI__) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const currentPath = props.screenshotsFolder || defaultScreenshotsFolder.value || "";
+      const selected = await invoke<string | null>("pick_folder", { defaultPath: currentPath || null });
+      if (selected) {
+        setScreenshotsFolder(selected);
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to pick folder:", e);
+  }
+}
 
 function close() {
   emit("close");
@@ -102,6 +192,10 @@ function setPosition(pos: WindowPosition) {
 
 function setTheme(t: ColorTheme) {
   emit("update:theme", t);
+}
+
+function setScreenshotsFolder(folder: string) {
+  emit("update:screenshotsFolder", folder);
 }
 </script>
 
@@ -140,18 +234,65 @@ function setTheme(t: ColorTheme) {
 
 .modal-content {
   padding: 16px;
+  overflow-y: auto;
+  max-height: calc(80vh - 50px);
 }
 
 .version-badge {
   text-align: center;
   font-size: 12px;
   color: var(--text-secondary);
-  margin-bottom: 12px;
-  padding: 4px 8px;
+  margin-bottom: 4px;
+  padding: 6px 12px;
   background: var(--input-bg);
-  border-radius: 4px;
-  display: inline-block;
+  border-radius: 6px;
+  display: block;
+}
+
+.update-btn {
   width: 100%;
+  padding: 6px 12px;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.update-status {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 4px 0;
+  margin-bottom: 12px;
+}
+
+.update-status.update-available {
+  color: var(--accent-blue, #4a9eff);
+  font-weight: 600;
+}
+
+.folder-picker {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.folder-path {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-browse-btn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 11px;
 }
 
 .setting-group {
@@ -175,6 +316,7 @@ function setTheme(t: ColorTheme) {
   font-size: 13px;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-sizing: border-box;
 }
 
 .setting-select:hover {
@@ -191,5 +333,15 @@ function setTheme(t: ColorTheme) {
 .setting-select option {
   background: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+.reset-btn {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.btn-sm {
+  font-size: 12px;
+  padding: 4px 10px;
 }
 </style>

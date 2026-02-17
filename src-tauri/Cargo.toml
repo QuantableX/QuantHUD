@@ -1,6 +1,6 @@
 [package]
 name = "quanthud"
-version = "1.0.4"
+version = "1.0.5"
 description = "QuantHUD - Fibonacci Level Extractor for Trading"
 authors = ["QuantableX"]
 edition = "2021"
@@ -23,6 +23,7 @@ screenshots = "0.8"
 image = "0.25"
 base64 = "0.22"
 dirs = "5"
+rfd = "0.15"
 thiserror = "2"
 
 [profile.release]

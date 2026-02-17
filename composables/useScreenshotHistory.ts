@@ -5,7 +5,7 @@ export interface ScreenshotEntry {
   image_base64?: string; // loaded on demand
 }
 
-export function useScreenshotHistory() {
+export function useScreenshotHistory(customFolder?: Ref<string>) {
   const entries = ref<ScreenshotEntry[]>([]);
   const loading = ref(false);
 
@@ -19,9 +19,10 @@ export function useScreenshotHistory() {
       }
       loading.value = true;
       const { invoke } = await import("@tauri-apps/api/core");
+      const folder = customFolder?.value || "";
       const list = await invoke<
         { path: string; filename: string; modified: number }[]
-      >("list_os_screenshots");
+      >("list_os_screenshots", { customFolder: folder || null });
       entries.value = list.map((s) => ({
         path: s.path,
         filename: s.filename,
@@ -73,7 +74,8 @@ export function useScreenshotHistory() {
   async function openFolder() {
     try {
       const { invoke } = await import("@tauri-apps/api/core");
-      await invoke("open_screenshots_folder");
+      const folder = customFolder?.value || "";
+      await invoke("open_screenshots_folder", { customFolder: folder || null });
     } catch (e) {
       console.warn("Failed to open folder:", e);
     }

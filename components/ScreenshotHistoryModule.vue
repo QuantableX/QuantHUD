@@ -119,6 +119,12 @@
 </template>
 
 <script setup lang="ts">
+const props = defineProps<{
+  screenshotsFolder?: string;
+}>();
+
+const folderRef = computed(() => props.screenshotsFolder || "");
+
 const {
   entries,
   loading,
@@ -126,7 +132,7 @@ const {
   loadThumbnail,
   copyScreenshot,
   openFolder,
-} = useScreenshotHistory();
+} = useScreenshotHistory(folderRef);
 
 // Auto-load thumbnails when entries change
 watch(

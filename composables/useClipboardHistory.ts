@@ -70,11 +70,19 @@ async function _pollClipboard() {
   const text = await _readClipboard();
   if (text && text !== _lastClipText) {
     _lastClipText = text;
-    if (_entries.value.length === 0 || _entries.value[0].text !== text) {
-      _entries.value.unshift({ id: generateId(), text, timestamp: Date.now() });
-      if (_entries.value.length > MAX_ENTRIES) _entries.value.pop();
-      _save();
+    // Check if this text already exists anywhere in the history
+    const existingIndex = _entries.value.findIndex((e) => e.text === text);
+    if (existingIndex === 0) {
+      // Already at the top, nothing to do
+      return;
     }
+    if (existingIndex > 0) {
+      // Remove from old position and move to top with updated timestamp
+      _entries.value.splice(existingIndex, 1);
+    }
+    _entries.value.unshift({ id: generateId(), text, timestamp: Date.now() });
+    if (_entries.value.length > MAX_ENTRIES) _entries.value.pop();
+    _save();
   }
 }
 

@@ -289,8 +289,18 @@
         <!-- Settings Module -->
         <div v-else-if="activeModule === 'settings'" class="module-content">
           <div class="card">
-            <!-- Version -->
+            <!-- Version + Update Check -->
             <div class="version-badge">v{{ appVersion }}</div>
+            <button
+              class="btn btn-ghost update-btn"
+              :disabled="updateChecking"
+              @click="checkForUpdate"
+            >
+              {{ updateChecking ? 'Checking...' : 'Check for Updates' }}
+            </button>
+            <div v-if="updateStatus" class="update-status" :class="{ 'update-available': updateAvailable }">
+              {{ updateStatus }}
+            </div>
 
             <!-- Monitor Selection -->
             <div class="setting-group">
@@ -395,6 +405,27 @@
                 <option value="pro">Pro</option>
               </select>
             </div>
+
+            <!-- Screenshots Folder -->
+            <div class="setting-group">
+              <label class="setting-label">Screenshots Folder</label>
+              <div class="folder-picker">
+                <div class="folder-path" :title="config.screenshotsFolder || defaultScreenshotsFolder || 'Pictures/Screenshots'">
+                  {{ config.screenshotsFolder || defaultScreenshotsFolder || 'Pictures/Screenshots' }}
+                </div>
+                <button class="btn btn-ghost folder-browse-btn" @click="browseScreenshotsFolder">
+                  Browse
+                </button>
+              </div>
+              <button
+                v-if="config.screenshotsFolder"
+                class="btn btn-ghost"
+                style="margin-top: 4px; font-size: 11px; padding: 3px 8px"
+                @click="setScreenshotsFolder('')"
+              >
+                Reset to Default
+              </button>
+            </div>
           </div>
         </div>
 
@@ -442,7 +473,7 @@
           v-else-if="activeModule === 'screenshots'"
           class="module-content module-content--fill"
         >
-          <ScreenshotHistoryModule />
+          <ScreenshotHistoryModule :screenshots-folder="config.screenshotsFolder" />
         </div>
 
         <!-- Fallback for unknown modules -->
@@ -504,6 +535,7 @@ const {
   setActivationMode,
   setMonitorIndex,
   setDisplayMode,
+  setScreenshotsFolder,
 } = useConfig();
 
 const isPinned = ref(false);
@@ -511,6 +543,14 @@ const isTucked = ref(true);
 const activeModule = ref("home");
 const homeGeneralCollapsed = ref(false);
 const homeAdvancedCollapsed = ref(false);
+
+// Screenshots folder
+const defaultScreenshotsFolder = ref("");
+
+// Update check
+const updateChecking = ref(false);
+const updateStatus = ref("");
+const updateAvailable = ref(false);
 
 const displayMode = computed(() => config.value.displayMode || "basic");
 const generalHomeIds = [
@@ -610,6 +650,17 @@ onMounted(async () => {
   initClipboardPolling();
 
   await loadConfig();
+
+  // Load default screenshots folder path
+  if (isTauri) {
+    try {
+      const { invoke: inv } = await import("@tauri-apps/api/core");
+      defaultScreenshotsFolder.value = await inv<string>("get_default_screenshots_folder");
+    } catch (e) {
+      console.warn("Failed to get default screenshots folder:", e);
+    }
+  }
+
   if (config.value.scanRegion) {
     scanRegion.value = config.value.scanRegion;
     status.value = `Region: ${config.value.scanRegion[2]}x${config.value.scanRegion[3]}`;
@@ -945,6 +996,49 @@ function handleDisplayModeChange(mode: "basic" | "pro") {
   setDisplayMode(mode);
 }
 
+async function browseScreenshotsFolder() {
+  try {
+    const { invoke: inv } = await import("@tauri-apps/api/core");
+    const currentPath = config.value.screenshotsFolder || defaultScreenshotsFolder.value || "";
+    const selected = await inv<string | null>("pick_folder", { defaultPath: currentPath || null });
+    if (selected) {
+      setScreenshotsFolder(selected);
+    }
+  } catch (e) {
+    console.warn("Failed to pick folder:", e);
+  }
+}
+
+async function checkForUpdate() {
+  updateChecking.value = true;
+  updateStatus.value = "";
+  updateAvailable.value = false;
+  try {
+    const res = await fetch(
+      "https://api.github.com/repos/QuantableX/QuantHUD/releases/latest"
+    );
+    if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+    const data = await res.json();
+    const latestVersion = (data.tag_name || "").replace(/^v/, "");
+    const currentVersion = appVersion as string;
+    if (latestVersion && latestVersion !== currentVersion) {
+      updateAvailable.value = true;
+      updateStatus.value = `Update available: v${latestVersion}`;
+      if (typeof window !== "undefined" && (window as any).__TAURI__) {
+        const { open } = await import("@tauri-apps/plugin-shell");
+        await open(data.html_url);
+      }
+    } else {
+      updateStatus.value = "You are on the latest version.";
+    }
+  } catch (e: any) {
+    updateStatus.value = "Failed to check for updates.";
+    console.warn("Update check failed:", e);
+  } finally {
+    updateChecking.value = false;
+  }
+}
+
 function applyTheme() {
   if (config.value.colorTheme) {
     document.documentElement.setAttribute(
@@ -1222,6 +1316,52 @@ function applyTheme() {
 .monitor-select option {
   background: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+.update-btn {
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.update-status {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 4px 0;
+  margin-bottom: 12px;
+}
+
+.update-status.update-available {
+  color: var(--accent-blue, #4a9eff);
+  font-weight: 600;
+}
+
+.folder-picker {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.folder-path {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-browse-btn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 11px;
 }
 
 /* Home Hub */
