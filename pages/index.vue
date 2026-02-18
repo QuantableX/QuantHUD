@@ -296,9 +296,13 @@
               :disabled="updateChecking"
               @click="checkForUpdate"
             >
-              {{ updateChecking ? 'Checking...' : 'Check for Updates' }}
+              {{ updateChecking ? "Checking..." : "Check for Updates" }}
             </button>
-            <div v-if="updateStatus" class="update-status" :class="{ 'update-available': updateAvailable }">
+            <div
+              v-if="updateStatus"
+              class="update-status"
+              :class="{ 'update-available': updateAvailable }"
+            >
               {{ updateStatus }}
             </div>
 
@@ -410,10 +414,24 @@
             <div class="setting-group">
               <label class="setting-label">Screenshots Folder</label>
               <div class="folder-picker">
-                <div class="folder-path" :title="config.screenshotsFolder || defaultScreenshotsFolder || 'Pictures/Screenshots'">
-                  {{ config.screenshotsFolder || defaultScreenshotsFolder || 'Pictures/Screenshots' }}
+                <div
+                  class="folder-path"
+                  :title="
+                    config.screenshotsFolder ||
+                    defaultScreenshotsFolder ||
+                    'Pictures/Screenshots'
+                  "
+                >
+                  {{
+                    config.screenshotsFolder ||
+                    defaultScreenshotsFolder ||
+                    "Pictures/Screenshots"
+                  }}
                 </div>
-                <button class="btn btn-ghost folder-browse-btn" @click="browseScreenshotsFolder">
+                <button
+                  class="btn btn-ghost folder-browse-btn"
+                  @click="browseScreenshotsFolder"
+                >
                   Browse
                 </button>
               </div>
@@ -425,6 +443,30 @@
               >
                 Reset to Default
               </button>
+            </div>
+
+            <!-- Speech Recognition Language -->
+            <div class="setting-group">
+              <label class="setting-label">Speech Recognition Language</label>
+              <select
+                class="monitor-select"
+                :value="config.speechLanguage || 'system'"
+                @change="
+                  setSpeechLanguage(
+                    ($event.target as HTMLSelectElement).value as any,
+                  )
+                "
+              >
+                <option value="system">System Default</option>
+                <option value="de-DE">Deutsch (de-DE)</option>
+                <option value="en-US">English (en-US)</option>
+                <option value="fr-FR">Français (fr-FR)</option>
+                <option value="es-ES">Español (es-ES)</option>
+                <option value="it-IT">Italiano (it-IT)</option>
+                <option value="ja-JP">日本語 (ja-JP)</option>
+                <option value="zh-CN">中文 (zh-CN)</option>
+                <option value="pt-BR">Português (pt-BR)</option>
+              </select>
             </div>
           </div>
         </div>
@@ -473,7 +515,25 @@
           v-else-if="activeModule === 'screenshots'"
           class="module-content module-content--fill"
         >
-          <ScreenshotHistoryModule :screenshots-folder="config.screenshotsFolder" />
+          <ScreenshotHistoryModule
+            :screenshots-folder="config.screenshotsFolder"
+          />
+        </div>
+
+        <!-- Transcript Module -->
+        <div
+          v-else-if="activeModule === 'transcript'"
+          class="module-content module-content--fill"
+        >
+          <TranscriptModule />
+        </div>
+
+        <!-- Shortcuts Module -->
+        <div
+          v-else-if="activeModule === 'shortcuts'"
+          class="module-content module-content--fill"
+        >
+          <ShortcutsModule />
         </div>
 
         <!-- Fallback for unknown modules -->
@@ -536,6 +596,7 @@ const {
   setMonitorIndex,
   setDisplayMode,
   setScreenshotsFolder,
+  setSpeechLanguage,
 } = useConfig();
 
 const isPinned = ref(false);
@@ -562,6 +623,8 @@ const generalHomeIds = [
   "colorpicker",
   "clipboard",
   "screenshots",
+  "transcript",
+  "shortcuts",
 ];
 
 const homeModules = [
@@ -604,6 +667,16 @@ const homeModules = [
     id: "screenshots",
     label: "Screenshots",
     icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+  },
+  {
+    id: "transcript",
+    label: "Transcript",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>',
+  },
+  {
+    id: "shortcuts",
+    label: "Shortcuts",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
   },
   {
     id: "position-calc",
@@ -655,7 +728,9 @@ onMounted(async () => {
   if (isTauri) {
     try {
       const { invoke: inv } = await import("@tauri-apps/api/core");
-      defaultScreenshotsFolder.value = await inv<string>("get_default_screenshots_folder");
+      defaultScreenshotsFolder.value = await inv<string>(
+        "get_default_screenshots_folder",
+      );
     } catch (e) {
       console.warn("Failed to get default screenshots folder:", e);
     }
@@ -999,8 +1074,11 @@ function handleDisplayModeChange(mode: "basic" | "pro") {
 async function browseScreenshotsFolder() {
   try {
     const { invoke: inv } = await import("@tauri-apps/api/core");
-    const currentPath = config.value.screenshotsFolder || defaultScreenshotsFolder.value || "";
-    const selected = await inv<string | null>("pick_folder", { defaultPath: currentPath || null });
+    const currentPath =
+      config.value.screenshotsFolder || defaultScreenshotsFolder.value || "";
+    const selected = await inv<string | null>("pick_folder", {
+      defaultPath: currentPath || null,
+    });
     if (selected) {
       setScreenshotsFolder(selected);
     }
@@ -1015,7 +1093,7 @@ async function checkForUpdate() {
   updateAvailable.value = false;
   try {
     const res = await fetch(
-      "https://api.github.com/repos/QuantableX/QuantHUD/releases/latest"
+      "https://api.github.com/repos/QuantableX/QuantHUD/releases/latest",
     );
     if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
     const data = await res.json();

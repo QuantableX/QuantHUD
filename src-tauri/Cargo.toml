@@ -1,6 +1,6 @@
 [package]
 name = "quanthud"
-version = "1.0.5"
+version = "1.0.6"
 description = "QuantHUD - Fibonacci Level Extractor for Trading"
 authors = ["QuantableX"]
 edition = "2021"
@@ -25,6 +25,14 @@ base64 = "0.22"
 dirs = "5"
 rfd = "0.15"
 thiserror = "2"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61", features = [
+    "Foundation",
+    "Foundation_Collections",
+    "Globalization",
+    "Media_SpeechRecognition",
+] }
 
 [profile.release]
 strip = true

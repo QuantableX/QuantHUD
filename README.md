@@ -18,6 +18,8 @@ Built with **Tauri 2** (Rust backend) + **Nuxt 3** (Vue frontend).
 - 🎨 **Color Picker** - Pick and copy colors from screen
 - 📋 **Clipboard History** - Browse and reuse recent clipboard entries
 - 📷 **Screenshots** - Capture and browse screenshot history
+- 🎙️ **Transcript** - Speech-to-text recording with real-time audio visualizer, multi-language support, and transcript history
+- 🔗 **Shortcuts** - Save and launch URLs and local applications with one click, auto-fetched favicons, and native file picker for .exe selection
 
 ### Advanced Modules
 
@@ -28,7 +30,7 @@ Built with **Tauri 2** (Rust backend) + **Nuxt 3** (Vue frontend).
 ### App Behavior
 
 - 📌 **Pin / Auto-hide** - Slides in and out from the screen edge
-- ⚙️ **Settings** - Window position (left/right), monitor selection, color themes, trigger style, activation mode, and Basic/Pro display modes
+- ⚙️ **Settings** - Window position (left/right/dual), monitor selection, color themes, trigger style, activation mode, Basic/Pro display modes, screenshots folder, and speech recognition language
 
 ---
 
@@ -127,6 +129,8 @@ QuantHUD/
 │   ├── ColorPickerModule.vue# Color picker
 │   ├── ClipboardHistoryModule.vue
 │   ├── ScreenshotHistoryModule.vue
+│   ├── TranscriptModule.vue # Speech-to-text
+│   ├── ShortcutsModule.vue  # URL & app launcher
 │   ├── LevelsCard.vue       # Entry/TP/SL inputs
 │   ├── CalculatorCard.vue   # Position sizing inputs
 │   └── ResultsCard.vue      # Calculation results
@@ -142,7 +146,9 @@ QuantHUD/
 │   ├── useGeneralCalc.ts
 │   ├── useColorPicker.ts
 │   ├── useClipboardHistory.ts
-│   └── useScreenshotHistory.ts
+│   ├── useScreenshotHistory.ts
+│   ├── useTranscript.ts
+│   └── useShortcuts.ts
 ├── pages/
 │   ├── index.vue            # Main UI & module router
 │   ├── region-selector.vue  # OCR region selection overlay

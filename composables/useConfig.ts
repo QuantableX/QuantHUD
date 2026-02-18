@@ -5,6 +5,17 @@ export type ColorTheme = "light" | "dark";
 export type TriggerStyle = "column" | "halfcircle";
 export type ActivationMode = "hover" | "click";
 export type DisplayMode = "basic" | "pro";
+/** BCP-47 language tag for speech recognition, e.g. "de-DE", "en-US", or "system" for Windows default */
+export type SpeechLanguage =
+  | "system"
+  | "de-DE"
+  | "en-US"
+  | "fr-FR"
+  | "es-ES"
+  | "it-IT"
+  | "ja-JP"
+  | "zh-CN"
+  | "pt-BR";
 
 export interface AppConfig {
   scanRegion: [number, number, number, number] | null;
@@ -16,6 +27,7 @@ export interface AppConfig {
   monitorIndex: number;
   displayMode: DisplayMode;
   screenshotsFolder: string;
+  speechLanguage: SpeechLanguage;
 }
 
 const CONFIG_KEY = "quanthub_config";
@@ -31,6 +43,7 @@ export function useConfig() {
     monitorIndex: 0,
     displayMode: "basic",
     screenshotsFolder: "",
+    speechLanguage: "system",
   });
 
   async function loadConfig() {
@@ -40,13 +53,14 @@ export function useConfig() {
         const { invoke } = await import("@tauri-apps/api/core");
         const saved = await invoke<string>("load_config");
         if (saved) {
-          config.value = JSON.parse(saved);
+          // Merge with defaults so new fields are always present
+          config.value = { ...config.value, ...JSON.parse(saved) };
         }
       } else {
         // Fallback to localStorage for dev
         const saved = localStorage.getItem(CONFIG_KEY);
         if (saved) {
-          config.value = JSON.parse(saved);
+          config.value = { ...config.value, ...JSON.parse(saved) };
         }
       }
     } catch (e) {
@@ -114,6 +128,11 @@ export function useConfig() {
     saveConfig();
   }
 
+  function setSpeechLanguage(lang: SpeechLanguage) {
+    config.value.speechLanguage = lang;
+    saveConfig();
+  }
+
   let _syncCleanup: (() => void) | null = null;
 
   // Load on init
@@ -139,5 +158,6 @@ export function useConfig() {
     setMonitorIndex,
     setDisplayMode,
     setScreenshotsFolder,
+    setSpeechLanguage,
   };
 }

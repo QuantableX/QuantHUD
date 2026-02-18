@@ -3,7 +3,7 @@ mod config;
 
 use serde::{Deserialize, Serialize};
 use tauri::{
-    Manager, PhysicalPosition, WebviewWindow,
+    Emitter, Manager, PhysicalPosition, WebviewWindow,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
 };
@@ -407,6 +407,44 @@ async fn pick_folder(default_path: Option<String>) -> Result<Option<String>, Str
     }
 }
 
+/// Open a native file picker dialog and return the selected file path
+#[tauri::command]
+async fn pick_file(default_path: Option<String>) -> Result<Option<String>, String> {
+    let mut dialog = rfd::FileDialog::new()
+        .add_filter("Executables", &["exe", "lnk", "bat", "cmd"])
+        .add_filter("All Files", &["*"]);
+    if let Some(ref path) = default_path {
+        if !path.is_empty() {
+            dialog = dialog.set_directory(path);
+        }
+    }
+    match dialog.pick_file() {
+        Some(path) => Ok(Some(path.to_string_lossy().to_string())),
+        None => Ok(None),
+    }
+}
+
+/// Launch a local application or file using the OS shell
+#[tauri::command]
+async fn launch_app(path: String) -> Result<(), String> {
+    use std::process::Command;
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("cmd")
+            .args(["/C", "start", "", &path])
+            .spawn()
+            .map_err(|e| format!("Failed to launch app: {}", e))?;
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to launch app: {}", e))?;
+    }
+    Ok(())
+}
+
 /// Get the default screenshots folder path
 #[tauri::command]
 async fn get_default_screenshots_folder() -> Result<String, String> {
@@ -640,6 +678,7 @@ async fn save_config(config: String) -> Result<(), String> {
 }
 
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::State;
 
 // Global state for selected region
@@ -1217,8 +1256,348 @@ async fn show_notification_popup(message: String) -> Result<(), String> {
     Ok(())
 }
 
+// ── Speech Recognition ──
+static SPEECH_ACTIVE: AtomicBool = AtomicBool::new(false);
+static SPEECH_THREAD_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+#[tauri::command]
+async fn start_speech_recognition(app: tauri::AppHandle, language: Option<String>) -> Result<(), String> {
+    if SPEECH_ACTIVE.swap(true, Ordering::SeqCst) {
+        return Err("Already recording".to_string());
+    }
+
+    // Default to system language if not specified
+    let lang_tag = language.unwrap_or_else(|| "system".to_string());
+
+    let app_handle = app.clone();
+    std::thread::spawn(move || {
+        #[cfg(target_os = "windows")]
+        {
+            use windows::Globalization::Language;
+            use windows::Media::SpeechRecognition::{
+                SpeechRecognizer, SpeechRecognitionTopicConstraint,
+                SpeechRecognitionScenario,
+            };
+            use windows::Foundation::TypedEventHandler;
+
+            // Store this thread's ID so stop_speech_recognition can post WM_QUIT
+            unsafe {
+                extern "system" {
+                    fn GetCurrentThreadId() -> u32;
+                }
+                SPEECH_THREAD_ID.store(GetCurrentThreadId(), Ordering::SeqCst);
+            }
+
+            // Initialize COM as STA — WinRT speech APIs require a single-threaded
+            // apartment with a message pump for callbacks to be dispatched.
+            unsafe {
+                extern "system" {
+                    fn CoInitializeEx(pvReserved: *mut std::ffi::c_void, dwCoInit: u32) -> i32;
+                }
+                let hr = CoInitializeEx(std::ptr::null_mut(), 0x2); // COINIT_APARTMENTTHREADED
+                // S_OK = 0, S_FALSE = 1 (already initialized) - both are fine
+                if hr < 0 && hr != 1 {
+                    let _ = app_handle.emit("speech-error", format!("COM init failed: 0x{:08x}", hr));
+                    SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+                    return;
+                }
+            }
+
+            // Try to query available speech languages for dictation (topic-based, not grammar-based)
+            let available_langs = match windows::Media::SpeechRecognition::SpeechRecognizer::SupportedTopicLanguages() {
+                Ok(langs) => {
+                    let count = langs.Size().unwrap_or(0);
+                    let mut lang_list = Vec::new();
+                    for i in 0..count {
+                        if let Ok(lang) = langs.GetAt(i) {
+                            if let Ok(tag) = lang.LanguageTag() {
+                                lang_list.push(tag.to_string());
+                            }
+                        }
+                    }
+                    Some(lang_list)
+                }
+                Err(_) => None,
+            };
+
+            // Build recognizer based on requested language tag.
+            // "system" = use Windows default; otherwise try the requested tag first, then fallback chain.
+            // We check SupportedTopicLanguages to verify the requested language is available for dictation.
+            let recognizer: SpeechRecognizer = {
+                if lang_tag != "system" {
+                    // Check if the requested language is in the supported dictation languages list
+                    let lang_supported = available_langs.as_ref().map(|list| {
+                        list.iter().any(|l| l.to_lowercase() == lang_tag.to_lowercase())
+                    }).unwrap_or(false);
+
+                    if lang_supported {
+                        // Language is confirmed available — create recognizer with it
+                        match (|| -> windows::core::Result<SpeechRecognizer> {
+                            let lang = Language::CreateLanguage(&windows::core::HSTRING::from(lang_tag.as_str()))?;
+                            SpeechRecognizer::Create(&lang)
+                        })() {
+                            Ok(r) => r,
+                            Err(e) => {
+                                // Creation failed despite being listed — warn and fall back
+                                let _ = app_handle.emit("speech-warning", format!(
+                                    "Could not create recognizer for {} ({}), falling back to system default.",
+                                    lang_tag, e
+                                ));
+                                match SpeechRecognizer::new() {
+                                    Ok(r) => r,
+                                    Err(e2) => {
+                                        let _ = app_handle.emit("speech-error", format!("Speech recognition unavailable: {}", e2));
+                                        SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // Requested language not in supported dictation list — warn and fall back
+                        let available = available_langs.as_ref().map(|l| l.join(", ")).unwrap_or_default();
+                        let _ = app_handle.emit("speech-warning", format!(
+                            "Language '{}' is not available for speech recognition dictation. Available: [{}]. Falling back to system default.",
+                            lang_tag, available
+                        ));
+                        match SpeechRecognizer::new() {
+                            Ok(r) => r,
+                            Err(e) => {
+                                let _ = app_handle.emit("speech-error", format!("Speech recognition unavailable: {}", e));
+                                SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+                                return;
+                            }
+                        }
+                    }
+                } else {
+                    // System default
+                    match SpeechRecognizer::new() {
+                        Ok(r) => r,
+                        Err(e_default) => {
+                            match (|| -> windows::core::Result<SpeechRecognizer> {
+                                let lang = Language::CreateLanguage(&windows::core::HSTRING::from("en-US"))?;
+                                SpeechRecognizer::Create(&lang)
+                            })() {
+                                Ok(r) => r,
+                                Err(e_en) => {
+                                    let lang_count = available_langs.as_ref().map(|v| v.len()).unwrap_or(0);
+                                    let error_msg = if lang_count == 0 {
+                                        "Windows Speech Recognition reports 0 available languages. Try: 1) Restart Windows, 2) Run 'sfc /scannow' in admin PowerShell, 3) Reinstall speech language packs in Settings → Time & Language → Language & Region.".to_string()
+                                    } else {
+                                        format!("Speech recognition unavailable (Windows reports {} languages but all failed: default={}, en-US={}). Try restarting Windows or repairing speech components.", lang_count, e_default, e_en)
+                                    };
+                                    let _ = app_handle.emit("speech-error", error_msg);
+                                    SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Use continuous recognition session instead of single RecognizeAsync
+            // so results stream in as the user speaks
+            let session = match recognizer.ContinuousRecognitionSession() {
+                Ok(s) => s,
+                Err(e) => {
+                    let _ = app_handle.emit("speech-error", format!("Failed to get session: {}", e));
+                    SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+                    return;
+                }
+            };
+
+            // Set up result handler
+            let app_for_result = app_handle.clone();
+            let _ = session.ResultGenerated(&TypedEventHandler::new(
+                move |_session: windows::core::Ref<'_, windows::Media::SpeechRecognition::SpeechContinuousRecognitionSession>,
+                      args: windows::core::Ref<'_, windows::Media::SpeechRecognition::SpeechContinuousRecognitionResultGeneratedEventArgs>| {
+                    let _ = _session;
+                    if let Ok(args) = args.ok() {
+                        if let Ok(result) = args.Result() {
+                            if let Ok(text) = result.Text() {
+                                let s = text.to_string();
+                                if !s.is_empty() {
+                                    let _ = app_for_result.emit("speech-result", s);
+                                }
+                            }
+                        }
+                    }
+                    Ok(())
+                },
+            ));
+
+            // Set up completion handler.
+            // Windows ContinuousRecognitionSession has a built-in silence timeout (~30s).
+            // When it fires Completed, we check if the user still wants to record:
+            //   - If SPEECH_ACTIVE is still true → restart the session automatically (infinite recording)
+            //   - If SPEECH_ACTIVE is false → user pressed stop, post WM_QUIT to exit the pump
+            let app_for_complete = app_handle.clone();
+            let _ = session.Completed(&TypedEventHandler::new(
+                move |session_ref: windows::core::Ref<'_, windows::Media::SpeechRecognition::SpeechContinuousRecognitionSession>,
+                      _args: windows::core::Ref<'_, windows::Media::SpeechRecognition::SpeechContinuousRecognitionCompletedEventArgs>| {
+                    if SPEECH_ACTIVE.load(Ordering::SeqCst) {
+                        // User hasn't pressed stop — restart the session to continue indefinitely
+                        if let Ok(session) = session_ref.ok() {
+                            let restart_result = (|| -> windows::core::Result<()> {
+                                let op = session.StartAsync()?;
+                                op.get()?;
+                                Ok(())
+                            })();
+                            if let Err(e) = restart_result {
+                                // Restart failed — report error and stop
+                                let _ = app_for_complete.emit("speech-error", format!("Failed to restart recognition after timeout: {}", e));
+                                SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+                                let tid = SPEECH_THREAD_ID.load(Ordering::SeqCst);
+                                if tid != 0 {
+                                    unsafe {
+                                        extern "system" {
+                                            fn PostThreadMessageW(idThread: u32, Msg: u32, wParam: usize, lParam: isize) -> i32;
+                                        }
+                                        PostThreadMessageW(tid, 0x0012 /* WM_QUIT */, 0, 0);
+                                    }
+                                }
+                            }
+                            // else: restarted successfully, keep pumping
+                        }
+                    } else {
+                        // User pressed stop — signal the message pump to exit
+                        let _ = app_for_complete.emit("speech-stopped", "");
+                        let tid = SPEECH_THREAD_ID.load(Ordering::SeqCst);
+                        if tid != 0 {
+                            unsafe {
+                                extern "system" {
+                                    fn PostThreadMessageW(idThread: u32, Msg: u32, wParam: usize, lParam: isize) -> i32;
+                                }
+                                PostThreadMessageW(tid, 0x0012 /* WM_QUIT */, 0, 0);
+                            }
+                        }
+                    }
+                    Ok(())
+                },
+            ));
+
+            // Set up dictation constraint for free-form speech
+            let constraint = match SpeechRecognitionTopicConstraint::Create(
+                SpeechRecognitionScenario::Dictation,
+                &windows::core::HSTRING::from("dictation"),
+            ) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = app_handle.emit("speech-error", format!("Failed to create constraint: {}", e));
+                    SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+                    return;
+                }
+            };
+
+            // Append constraint
+            let append_result = (|| -> windows::core::Result<()> {
+                let constraints = recognizer.Constraints()?;
+                constraints.Append(&constraint)?;
+                Ok(())
+            })();
+            if let Err(e) = append_result {
+                let _ = app_handle.emit("speech-error", format!("Failed to set constraints: {}", e));
+                SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+                return;
+            }
+
+            // Compile constraints (blocking)
+            let compile_result = (|| -> windows::core::Result<()> {
+                let op = recognizer.CompileConstraintsAsync()?;
+                op.get()?;
+                Ok(())
+            })();
+            if let Err(e) = compile_result {
+                let _ = app_handle.emit("speech-error", format!("Failed to compile constraints: {}", e));
+                SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+                return;
+            }
+
+            // Start continuous recognition
+            let start_result = (|| -> windows::core::Result<()> {
+                let op = session.StartAsync()?;
+                op.get()?;
+                Ok(())
+            })();
+            if let Err(e) = start_result {
+                let _ = app_handle.emit("speech-error", format!("Failed to start recognition: {}", e));
+                SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+                return;
+            }
+
+            // Run a message pump so WinRT callbacks are dispatched on this STA thread.
+            // The loop runs until SPEECH_ACTIVE becomes false (user pressed stop) and
+            // the Completed handler posts WM_QUIT, or until stop_speech_recognition posts WM_QUIT directly.
+            unsafe {
+                #[repr(C)]
+                struct MSG {
+                    hwnd: *mut std::ffi::c_void,
+                    message: u32,
+                    w_param: usize,
+                    l_param: isize,
+                    time: u32,
+                    pt_x: i32,
+                    pt_y: i32,
+                }
+                extern "system" {
+                    fn GetMessageW(msg: *mut MSG, hwnd: *mut std::ffi::c_void, min: u32, max: u32) -> i32;
+                    fn TranslateMessage(msg: *const MSG) -> i32;
+                    fn DispatchMessageW(msg: *const MSG) -> isize;
+                }
+
+                let mut msg: MSG = std::mem::zeroed();
+                loop {
+                    let ret = GetMessageW(&mut msg, std::ptr::null_mut(), 0, 0);
+                    if ret <= 0 {
+                        break; // WM_QUIT or error
+                    }
+                    TranslateMessage(&msg);
+                    DispatchMessageW(&msg);
+                }
+
+                // Stop the session cleanly
+                if let Ok(op) = session.StopAsync() {
+                    let _ = op.get();
+                }
+            }
+
+            SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+            let _ = app_handle.emit("speech-stopped", "");
+        }
+    });
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn stop_speech_recognition() -> Result<(), String> {
+    // Signal that the user wants to stop — the Completed handler will see this
+    // and post WM_QUIT instead of restarting the session.
+    SPEECH_ACTIVE.store(false, Ordering::SeqCst);
+    // Also post WM_QUIT directly in case the session is already in a completed/idle state
+    // and the Completed callback won't fire again.
+    let tid = SPEECH_THREAD_ID.load(Ordering::SeqCst);
+    if tid != 0 {
+        unsafe {
+            extern "system" {
+                fn PostThreadMessageW(idThread: u32, Msg: u32, wParam: usize, lParam: isize) -> i32;
+            }
+            PostThreadMessageW(tid, 0x0012 /* WM_QUIT */, 0, 0);
+        }
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Auto-grant microphone permission in WebView2 (no prompt)
+    #[cfg(target_os = "windows")]
+    std::env::set_var(
+        "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+        "--use-fake-ui-for-media-stream",
+    );
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -1273,6 +1652,8 @@ pub fn run() {
             get_selected_region,
             pick_screen_color,
             pick_folder,
+            pick_file,
+            launch_app,
             get_default_screenshots_folder,
             list_os_screenshots,
             read_screenshot_file,
@@ -1287,7 +1668,9 @@ pub fn run() {
             close_screenshot_preview,
             create_dual_window,
             close_dual_window,
-            show_notification_popup
+            show_notification_popup,
+            start_speech_recognition,
+            stop_speech_recognition
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
