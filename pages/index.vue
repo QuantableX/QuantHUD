@@ -31,10 +31,8 @@
 
     <!-- Main content area -->
     <div class="main-container">
-      <!-- Scrollable Content -->
-      <div class="scroll-content">
-        <!-- Header with Burger and Pin -->
-        <header class="header">
+      <!-- Header with Burger and Pin -->
+      <header class="header">
           <!-- Left side: Burger when left, Pin when right -->
           <Sidebar
             v-if="windowPosition === 'left'"
@@ -106,8 +104,10 @@
             :display-mode="config.displayMode || 'basic'"
             @update:active-module="activeModule = $event"
           />
-        </header>
+      </header>
 
+      <!-- Scrollable Content -->
+      <div class="scroll-content">
         <!-- Home Module -->
         <div v-if="activeModule === 'home'" class="module-content">
           <div class="home-hub">
@@ -1250,7 +1250,9 @@ function applyTheme() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 0;
+  padding: 6px 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .header-left,
