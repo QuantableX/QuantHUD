@@ -1,5 +1,5 @@
 /**
- * Sync version between package.json and Cargo.toml
+ * Sync version between package.json, Cargo.toml, and tauri.conf.json
  * Usage: node scripts/sync-version.js [version]
  * Example: node scripts/sync-version.js 1.0.0
  */
@@ -13,6 +13,7 @@ const rootDir = resolve(__dirname, "..");
 
 const packageJsonPath = resolve(rootDir, "package.json");
 const cargoTomlPath = resolve(rootDir, "src-tauri", "Cargo.toml");
+const tauriConfPath = resolve(rootDir, "src-tauri", "tauri.conf.json");
 
 // Get new version from args or read from package.json
 let newVersion = process.argv[2];
@@ -46,5 +47,11 @@ cargoToml = cargoToml.replace(
 );
 writeFileSync(cargoTomlPath, cargoToml);
 console.log(`✓ Cargo.toml: ${oldVersion} → ${newVersion}`);
+
+// Update tauri.conf.json
+const tauriConf = JSON.parse(readFileSync(tauriConfPath, "utf-8"));
+tauriConf.version = newVersion;
+writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + "\n");
+console.log(`✓ tauri.conf.json: ${oldVersion} → ${newVersion}`);
 
 console.log(`\n* Version synced to ${newVersion}`);

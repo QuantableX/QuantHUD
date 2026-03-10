@@ -38,11 +38,25 @@
       <div class="modal-content">
         <!-- Version + Update Check -->
         <div class="version-badge">v{{ appVersion }}</div>
-        <button class="btn btn-ghost update-btn" :disabled="updateChecking" @click="checkForUpdate">
-          {{ updateChecking ? 'Checking...' : 'Check for Updates' }}
-        </button>
+        <div class="update-row">
+          <button class="btn btn-ghost update-btn" :disabled="updateChecking" @click="checkForUpdate">
+            {{ updateChecking ? 'Checking...' : 'Check for Updates' }}
+          </button>
+          <button
+            v-if="updateAvailable && downloadUrl"
+            class="btn btn-accent download-btn"
+            :disabled="downloading"
+            @click="downloadUpdate"
+          >
+            <span v-if="downloading" class="update-spinner" />
+            {{ downloading ? 'Downloading...' : `Download v${latestVersion}` }}
+          </button>
+        </div>
         <div v-if="updateStatus" class="update-status" :class="{ 'update-available': updateAvailable }">
           {{ updateStatus }}
+        </div>
+        <div v-if="downloadStatus && downloadStatus !== 'Downloading...'" class="update-status" :class="{ 'download-error': downloadStatus.startsWith('Download failed') }">
+          {{ downloadStatus }}
         </div>
 
         <!-- Window Position -->
@@ -124,6 +138,10 @@ const defaultScreenshotsFolder = ref("");
 const updateChecking = ref(false);
 const updateStatus = ref("");
 const updateAvailable = ref(false);
+const latestVersion = ref("");
+const downloadUrl = ref("");
+const downloading = ref(false);
+const downloadStatus = ref("");
 
 onMounted(async () => {
   try {
@@ -140,30 +158,51 @@ async function checkForUpdate() {
   updateChecking.value = true;
   updateStatus.value = "";
   updateAvailable.value = false;
+  downloadUrl.value = "";
+  downloadStatus.value = "";
   try {
-    const res = await fetch(
-      "https://api.github.com/repos/QuantableX/QuantHUD/releases/latest"
-    );
-    if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
-    const data = await res.json();
-    const latestVersion = (data.tag_name || "").replace(/^v/, "");
-    const currentVersion = appVersion as string;
-    if (latestVersion && latestVersion !== currentVersion) {
-      updateAvailable.value = true;
-      updateStatus.value = `Update available: v${latestVersion}`;
-      // Open the release page
-      if (typeof window !== "undefined" && (window as any).__TAURI__) {
-        const { open } = await import("@tauri-apps/plugin-shell");
-        await open(data.html_url);
+    if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const info = await invoke<{
+        available: boolean;
+        current_version: string;
+        latest_version: string;
+        download_url: string;
+      }>("check_for_update");
+      if (info.available) {
+        updateAvailable.value = true;
+        latestVersion.value = info.latest_version;
+        downloadUrl.value = info.download_url;
+        updateStatus.value = `v${info.latest_version} available`;
+      } else {
+        updateStatus.value = "You are on the latest version.";
       }
-    } else {
-      updateStatus.value = "You are on the latest version.";
     }
   } catch (e: any) {
     updateStatus.value = "Failed to check for updates.";
     console.warn("Update check failed:", e);
   } finally {
     updateChecking.value = false;
+  }
+}
+
+async function downloadUpdate() {
+  if (!downloadUrl.value || downloading.value) return;
+  downloading.value = true;
+  downloadStatus.value = "Downloading...";
+  try {
+    if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke<string>("download_and_install_update", {
+        url: downloadUrl.value,
+      });
+      downloadStatus.value = "Installing... The app will restart.";
+    }
+  } catch (e: any) {
+    downloadStatus.value = `Download failed: ${e}`;
+    console.warn("Download failed:", e);
+  } finally {
+    downloading.value = false;
   }
 }
 
@@ -249,12 +288,47 @@ function setScreenshotsFolder(folder: string) {
   display: block;
 }
 
-.update-btn {
-  width: 100%;
-  padding: 6px 12px;
-  font-size: 11px;
+.update-row {
+  display: flex;
+  gap: 4px;
   margin-bottom: 4px;
 }
+
+.update-btn {
+  flex: 1;
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+.download-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: 11px;
+  background: var(--accent-blue, #4a9eff);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.download-btn:hover:not(:disabled) { opacity: 0.85; }
+.download-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.update-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .update-status {
   font-size: 11px;
@@ -267,6 +341,10 @@ function setScreenshotsFolder(folder: string) {
 .update-status.update-available {
   color: var(--accent-blue, #4a9eff);
   font-weight: 600;
+}
+
+.update-status.download-error {
+  color: var(--error, #ff4757);
 }
 
 .folder-picker {
