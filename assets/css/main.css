@@ -130,6 +130,12 @@ body {
   height: 32px;
   padding: 0;
   font-size: 16px;
+  background: var(--btn-primary);
+  color: white;
+}
+
+.btn-icon:hover {
+  background: var(--btn-primary-hover);
 }
 
 /* Input styles */

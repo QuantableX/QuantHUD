@@ -79,6 +79,13 @@ export function useShortcuts() {
     saveShortcuts();
   }
 
+  function reorderShortcuts(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    const item = shortcuts.value.splice(fromIndex, 1)[0];
+    shortcuts.value.splice(toIndex, 0, item);
+    saveShortcuts();
+  }
+
   function clearAll() {
     shortcuts.value = [];
     saveShortcuts();
@@ -123,6 +130,20 @@ export function useShortcuts() {
     }
   }
 
+  // --- App icon ---
+
+  async function fetchAppIcon(path: string): Promise<string | null> {
+    try {
+      if (typeof window !== "undefined" && (window as any).__TAURI__) {
+        const { invoke } = await import("@tauri-apps/api/core");
+        return await invoke<string | null>("get_app_icon", { path });
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
   // --- File picker ---
 
   async function pickFile(): Promise<string | null> {
@@ -146,6 +167,14 @@ export function useShortcuts() {
   onMounted(async () => {
     await loadShortcuts();
     _syncCleanup = await onSyncEvent("shortcuts", loadShortcuts);
+
+    // Auto-fetch missing icons for app shortcuts
+    for (const s of shortcuts.value) {
+      if (s.type === "app" && !s.favicon && s.url) {
+        const icon = await fetchAppIcon(s.url);
+        if (icon) updateShortcut(s.id, { favicon: icon });
+      }
+    }
   });
 
   onUnmounted(() => {
@@ -159,7 +188,9 @@ export function useShortcuts() {
     deleteShortcut,
     clearAll,
     openShortcut,
+    reorderShortcuts,
     fetchFavicon,
+    fetchAppIcon,
     pickFile,
   };
 }

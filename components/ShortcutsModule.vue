@@ -69,9 +69,29 @@
     </div>
 
     <div v-if="shortcuts.length" class="sc-list">
-      <div v-for="s in shortcuts" :key="s.id" class="sc-row">
+      <div
+        v-for="(s, index) in shortcuts"
+        :key="s.id"
+        class="sc-row"
+        :class="{
+          'sc-dragging': dragIndex === index,
+          'sc-drag-over': dragOverIndex === index && dragIndex !== index,
+        }"
+        :draggable="editingId !== s.id"
+        @dragstart="onDragStart($event, index)"
+        @dragover="onDragOver($event, index)"
+        @dragend="onDragEnd"
+        @drop="onDrop($event, index)"
+      >
         <!-- Normal view -->
         <template v-if="editingId !== s.id">
+          <div class="sc-drag-handle" title="Drag to reorder">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="8" cy="4" r="2" /><circle cx="16" cy="4" r="2" />
+              <circle cx="8" cy="12" r="2" /><circle cx="16" cy="12" r="2" />
+              <circle cx="8" cy="20" r="2" /><circle cx="16" cy="20" r="2" />
+            </svg>
+          </div>
           <div class="sc-icon" @click="openShortcut(s)">
             <img
               v-if="s.favicon"
@@ -189,7 +209,9 @@ const {
   updateShortcut,
   deleteShortcut,
   openShortcut,
+  reorderShortcuts,
   fetchFavicon,
+  fetchAppIcon,
   pickFile,
 } = useShortcuts();
 
@@ -198,6 +220,37 @@ const editingId = ref<string | null>(null);
 const editLabel = ref("");
 const editUrl = ref("");
 const editType = ref<"url" | "app">("url");
+
+// --- Drag and drop ---
+const dragIndex = ref<number | null>(null);
+const dragOverIndex = ref<number | null>(null);
+
+function onDragStart(e: DragEvent, index: number) {
+  dragIndex.value = index;
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = "move";
+  }
+}
+
+function onDragOver(e: DragEvent, index: number) {
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  dragOverIndex.value = index;
+}
+
+function onDrop(e: DragEvent, toIndex: number) {
+  e.preventDefault();
+  if (dragIndex.value !== null && dragIndex.value !== toIndex) {
+    reorderShortcuts(dragIndex.value, toIndex);
+  }
+  dragIndex.value = null;
+  dragOverIndex.value = null;
+}
+
+function onDragEnd() {
+  dragIndex.value = null;
+  dragOverIndex.value = null;
+}
 
 function startAdd() {
   adding.value = true;
@@ -216,12 +269,15 @@ async function saveNew() {
   const label = editLabel.value.trim() || editUrl.value.trim();
   addShortcut(label, editUrl.value.trim(), editType.value);
 
-  // Auto-fetch favicon for URLs
-  if (editType.value === "url" && editUrl.value.trim()) {
-    const last = shortcuts.value[shortcuts.value.length - 1];
-    if (last) {
+  // Auto-fetch icon
+  const last = shortcuts.value[shortcuts.value.length - 1];
+  if (last && editUrl.value.trim()) {
+    if (editType.value === "url") {
       const fav = await fetchFavicon(editUrl.value.trim());
       if (fav) updateShortcut(last.id, { favicon: fav });
+    } else if (editType.value === "app") {
+      const icon = await fetchAppIcon(editUrl.value.trim());
+      if (icon) updateShortcut(last.id, { favicon: icon });
     }
   }
 
@@ -253,8 +309,9 @@ async function saveEdit(id: string) {
   if (editType.value === "url" && editUrl.value.trim()) {
     const fav = await fetchFavicon(editUrl.value.trim());
     if (fav) data.favicon = fav;
-  } else if (editType.value === "app") {
-    data.favicon = null;
+  } else if (editType.value === "app" && editUrl.value.trim()) {
+    const icon = await fetchAppIcon(editUrl.value.trim());
+    data.favicon = icon || null;
   }
 
   updateShortcut(id, data);
@@ -330,6 +387,30 @@ async function browseFile() {
 }
 .sc-row:hover {
   background: var(--bg-secondary);
+}
+.sc-drag-handle {
+  flex-shrink: 0;
+  width: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--text-secondary);
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+.sc-drag-handle:active {
+  cursor: grabbing;
+}
+.sc-row:hover .sc-drag-handle {
+  opacity: 0.8;
+}
+.sc-dragging {
+  opacity: 0.3;
+}
+.sc-drag-over {
+  border-color: var(--accent-blue) !important;
+  box-shadow: 0 0 0 1px var(--accent-blue);
 }
 .sc-icon {
   flex-shrink: 0;

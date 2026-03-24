@@ -286,6 +286,22 @@
           />
         </div>
 
+        <!-- Chart Analyzer Module -->
+        <div
+          v-else-if="activeModule === 'chart-analyzer'"
+          class="module-content module-content--fill"
+        >
+          <ChartAnalyzerModule @open-history="activeModule = 'chart-analyzer-history'" />
+        </div>
+
+        <!-- Chart Analyzer History -->
+        <div
+          v-else-if="activeModule === 'chart-analyzer-history'"
+          class="module-content module-content--fill"
+        >
+          <ChartAnalyzerHistory @back="activeModule = 'chart-analyzer'" />
+        </div>
+
         <!-- Settings Module -->
         <div v-else-if="activeModule === 'settings'" class="module-content">
           <div class="card">
@@ -486,6 +502,39 @@
                 <option value="pt-BR">Português (pt-BR)</option>
               </select>
             </div>
+
+            <!-- AI Vision Model (Chart Analyzer) -->
+            <div class="setting-group">
+              <label class="setting-label">AI Provider</label>
+              <select
+                class="monitor-select"
+                :value="config.aiProvider || 'ollama'"
+                @change="handleAiProviderChange(($event.target as HTMLSelectElement).value as any)"
+              >
+                <option value="ollama">Ollama</option>
+                <option value="lmstudio">LM Studio</option>
+              </select>
+            </div>
+
+            <div class="setting-group">
+              <label class="setting-label">AI Base URL</label>
+              <input
+                class="input ai-url-input"
+                :value="config.aiBaseUrl || ''"
+                :placeholder="config.aiProvider === 'lmstudio' ? 'http://localhost:1234' : 'http://localhost:11434'"
+                @change="setAiBaseUrl(($event.target as HTMLInputElement).value.trim())"
+              />
+            </div>
+
+            <div class="setting-group">
+              <label class="setting-label">AI Vision Model</label>
+              <input
+                class="input ai-url-input"
+                :value="config.aiModel || ''"
+                :placeholder="config.aiProvider === 'lmstudio' ? 'model-name' : 'llava'"
+                @change="setAiModel(($event.target as HTMLInputElement).value.trim())"
+              />
+            </div>
           </div>
         </div>
 
@@ -615,6 +664,9 @@ const {
   setDisplayMode,
   setScreenshotsFolder,
   setSpeechLanguage,
+  setAiProvider,
+  setAiBaseUrl,
+  setAiModel,
 } = useConfig();
 
 const isPinned = ref(false);
@@ -704,6 +756,11 @@ const homeModules = [
     id: "position-calc",
     label: "Position Sizer",
     icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>',
+  },
+  {
+    id: "chart-analyzer",
+    label: "Chart Analyzer",
+    icon: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 6 4-4"/></svg>',
   },
 ];
 
@@ -1091,6 +1148,17 @@ function handleActivationModeChange(mode: "hover" | "click") {
 
 function handleDisplayModeChange(mode: "basic" | "pro") {
   setDisplayMode(mode);
+}
+
+function handleAiProviderChange(provider: "ollama" | "lmstudio") {
+  setAiProvider(provider);
+  // Set sensible default URL when switching providers
+  if (provider === "ollama") {
+    setAiBaseUrl("http://localhost:11434");
+    if (!config.value.aiModel) setAiModel("llava");
+  } else {
+    setAiBaseUrl("http://localhost:1234");
+  }
 }
 
 async function browseScreenshotsFolder() {
@@ -1524,6 +1592,12 @@ function applyTheme() {
   flex-shrink: 0;
   padding: 8px 12px;
   font-size: 11px;
+}
+
+.ai-url-input {
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
 }
 
 /* Home Hub */

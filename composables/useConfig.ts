@@ -5,6 +5,7 @@ export type ColorTheme = "light" | "dark";
 export type TriggerStyle = "column" | "halfcircle";
 export type ActivationMode = "hover" | "click";
 export type DisplayMode = "basic" | "pro";
+export type AiProvider = "ollama" | "lmstudio";
 /** BCP-47 language tag for speech recognition, e.g. "de-DE", "en-US", or "system" for Windows default */
 export type SpeechLanguage =
   | "system"
@@ -28,6 +29,10 @@ export interface AppConfig {
   displayMode: DisplayMode;
   screenshotsFolder: string;
   speechLanguage: SpeechLanguage;
+  aiProvider: AiProvider;
+  aiBaseUrl: string;
+  aiModel: string;
+  chartAnalyzerRegion: [number, number, number, number] | null;
 }
 
 const CONFIG_KEY = "quanthub_config";
@@ -44,6 +49,10 @@ export function useConfig() {
     displayMode: "basic",
     screenshotsFolder: "",
     speechLanguage: "system",
+    aiProvider: "ollama",
+    aiBaseUrl: "http://localhost:11434",
+    aiModel: "llava",
+    chartAnalyzerRegion: null,
   });
 
   async function loadConfig() {
@@ -133,6 +142,28 @@ export function useConfig() {
     saveConfig();
   }
 
+  function setAiProvider(provider: AiProvider) {
+    config.value.aiProvider = provider;
+    saveConfig();
+  }
+
+  function setAiBaseUrl(url: string) {
+    config.value.aiBaseUrl = url;
+    saveConfig();
+  }
+
+  function setAiModel(model: string) {
+    config.value.aiModel = model;
+    saveConfig();
+  }
+
+  function setChartAnalyzerRegion(
+    region: [number, number, number, number] | null,
+  ) {
+    config.value.chartAnalyzerRegion = region;
+    saveConfig();
+  }
+
   let _syncCleanup: (() => void) | null = null;
 
   // Load on init
@@ -159,5 +190,9 @@ export function useConfig() {
     setDisplayMode,
     setScreenshotsFolder,
     setSpeechLanguage,
+    setAiProvider,
+    setAiBaseUrl,
+    setAiModel,
+    setChartAnalyzerRegion,
   };
 }

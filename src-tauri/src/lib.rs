@@ -1,6 +1,7 @@
 mod capture;
 mod config;
 
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use serde::{Deserialize, Serialize};
 use tauri::{
     Emitter, Manager, PhysicalPosition, WebviewWindow,
@@ -57,8 +58,9 @@ pub struct CaptureResult {
 
 /// Capture screen and return as base64 PNG for frontend OCR processing
 #[tauri::command]
-async fn capture_screen(region: Option<[i32; 4]>) -> Result<CaptureResult, String> {
-    let (base64_data, width, height) = capture::capture_screen_base64(region).map_err(|e| e.to_string())?;
+async fn capture_screen(region: Option<[i32; 4]>, default_crop: Option<bool>) -> Result<CaptureResult, String> {
+    let crop = default_crop.unwrap_or(true);
+    let (base64_data, width, height) = capture::capture_screen_base64(region, crop).map_err(|e| e.to_string())?;
 
     Ok(CaptureResult {
         image_base64: base64_data,
@@ -430,8 +432,11 @@ async fn launch_app(path: String) -> Result<(), String> {
     use std::process::Command;
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
         Command::new("cmd")
             .args(["/C", "start", "", &path])
+            .creation_flags(CREATE_NO_WINDOW)
             .spawn()
             .map_err(|e| format!("Failed to launch app: {}", e))?;
     }
@@ -443,6 +448,117 @@ async fn launch_app(path: String) -> Result<(), String> {
             .map_err(|e| format!("Failed to launch app: {}", e))?;
     }
     Ok(())
+}
+
+/// Extract the icon from an executable or .lnk shortcut as a base64 PNG data URL
+#[tauri::command]
+async fn get_app_icon(path: String) -> Result<Option<String>, String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::ffi::OsStr;
+        use std::os::windows::ffi::OsStrExt;
+        use windows::core::PCWSTR;
+        use windows::Win32::Graphics::Gdi::{
+            CreateCompatibleDC, DeleteDC, DeleteObject, GetDIBits, GetObjectW, BITMAP,
+            BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS,
+        };
+        use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_NORMAL;
+        use windows::Win32::UI::Shell::{SHGetFileInfoW, SHFILEINFOW, SHGFI_ICON, SHGFI_LARGEICON};
+        use windows::Win32::UI::WindowsAndMessaging::{DestroyIcon, GetIconInfo, ICONINFO};
+
+        let wide: Vec<u16> = OsStr::new(&path)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect();
+
+        unsafe {
+            let mut file_info: SHFILEINFOW = std::mem::zeroed();
+            let result = SHGetFileInfoW(
+                PCWSTR(wide.as_ptr()),
+                FILE_ATTRIBUTE_NORMAL,
+                Some(&mut file_info),
+                std::mem::size_of::<SHFILEINFOW>() as u32,
+                SHGFI_ICON | SHGFI_LARGEICON,
+            );
+
+            if result == 0 || file_info.hIcon.is_invalid() {
+                return Ok(None);
+            }
+
+            let hicon = file_info.hIcon;
+
+            let mut info = ICONINFO::default();
+            if GetIconInfo(hicon, &mut info).is_err() {
+                let _ = DestroyIcon(hicon);
+                return Ok(None);
+            }
+
+            let hbm_color = info.hbmColor;
+            let hbm_mask = info.hbmMask;
+
+            let mut bmp = BITMAP::default();
+            GetObjectW(
+                hbm_color.into(),
+                std::mem::size_of::<BITMAP>() as i32,
+                Some(&mut bmp as *mut _ as *mut _),
+            );
+
+            let w = bmp.bmWidth as u32;
+            let h = bmp.bmHeight as u32;
+            if w == 0 || h == 0 {
+                let _ = DeleteObject(hbm_color.into());
+                let _ = DeleteObject(hbm_mask.into());
+                let _ = DestroyIcon(hicon);
+                return Ok(None);
+            }
+
+            let hdc = CreateCompatibleDC(None);
+            let mut bi: BITMAPINFO = std::mem::zeroed();
+            bi.bmiHeader.biSize = std::mem::size_of::<BITMAPINFOHEADER>() as u32;
+            bi.bmiHeader.biWidth = w as i32;
+            bi.bmiHeader.biHeight = -(h as i32);
+            bi.bmiHeader.biPlanes = 1;
+            bi.bmiHeader.biBitCount = 32;
+
+            let mut pixels = vec![0u8; (w * h * 4) as usize];
+            GetDIBits(
+                hdc,
+                hbm_color,
+                0,
+                h,
+                Some(pixels.as_mut_ptr() as *mut _),
+                &mut bi,
+                DIB_RGB_COLORS,
+            );
+
+            // BGRA → RGBA
+            for chunk in pixels.chunks_exact_mut(4) {
+                chunk.swap(0, 2);
+            }
+
+            let _ = DeleteDC(hdc);
+            let _ = DeleteObject(hbm_color.into());
+            let _ = DeleteObject(hbm_mask.into());
+            let _ = DestroyIcon(hicon);
+
+            let img = image::RgbaImage::from_raw(w, h, pixels)
+                .ok_or("Failed to create image from icon data")?;
+            let mut png_bytes = Vec::new();
+            use image::ImageEncoder;
+            image::codecs::png::PngEncoder::new(&mut png_bytes)
+                .write_image(&img, w, h, image::ExtendedColorType::Rgba8)
+                .map_err(|e| format!("PNG encode error: {}", e))?;
+
+            use base64::Engine;
+            let b64 = base64::engine::general_purpose::STANDARD.encode(&png_bytes);
+            Ok(Some(format!("data:image/png;base64,{}", b64)))
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = path;
+        Ok(None)
+    }
 }
 
 /// Get the default screenshots folder path
@@ -1589,6 +1705,241 @@ async fn stop_speech_recognition() -> Result<(), String> {
     Ok(())
 }
 
+// ── Chart Analyzer ──
+
+const WYCKOFF_SYSTEM: &str = r#"You are an expert Wyckoff Method chart analyst trained in Richard D. Wyckoff's original methodology. You analyze price charts by identifying the Composite Man's footprints through supply/demand dynamics, volume-price relationships, and structural patterns. You ONLY respond with raw JSON. No explanations, no markdown, no thinking, no text before or after the JSON. Just the JSON object.
+
+WYCKOFF METHODOLOGY REFERENCE:
+
+THREE LAWS:
+1. Supply and Demand: When demand > supply, prices rise. When supply > demand, prices fall. Assess by comparing price spread and volume on up-moves vs down-moves.
+2. Cause and Effect: The horizontal trading range (cause) determines the magnitude of the subsequent trend (effect). Wider/longer trading ranges produce larger moves.
+3. Effort vs Result: Volume (effort) should confirm price movement (result). Divergence signals potential trend change. High volume with little price progress = absorption. Expanding volume with expanding spread = harmony/continuation.
+
+ACCUMULATION EVENTS (identify during bottoming/basing):
+- PS (Preliminary Support): First notable buying after a prolonged downtrend. Volume increases, spread widens, but downtrend continues. Signals selling pressure may be weakening.
+- SC (Selling Climax): Widening spread and heavy/panicky selling absorbed by large interests near a bottom. Price often closes well off the low. Marks potential bottom.
+- AR (Automatic Rally): Sharp rally after SC as selling pressure diminishes. Fueled by short covering and institutional buying. The AR high helps define the upper boundary of the trading range.
+- ST (Secondary Test): Price revisits the SC area to test supply/demand balance. Volume and spread should be significantly less than the SC. Multiple STs are common. If ST goes below SC, expect new lows or prolonged consolidation.
+- Spring/Shakeout: Price drops below TR support then reverses back into the range. A bear trap. Tests remaining supply. Low-volume spring = bullish, ready for markup. Terminal shakeout = aggressive spring with wider drop. NOT required (Schematic #2 has no spring).
+- Test: Large operators test for remaining supply at key levels. Successful test = higher low on lesser volume.
+- SOS (Sign of Strength): Price advance on increasing spread and relatively higher volume. Often follows a spring/shakeout, validating that analysis.
+- LPS (Last Point of Support): Pullback after SOS on diminished spread and volume. Former resistance becomes support. Excellent entry point for longs.
+- BU (Back-Up): Short-term profit-taking and test of supply near resistance after SOS ("jump across the creek" then "back up to the creek"). Can be a simple pullback or new higher-level TR.
+
+DISTRIBUTION EVENTS (identify during topping):
+- PSY (Preliminary Supply): Large interests begin unloading after a pronounced up-move. Volume expands, spread widens. Signals potential trend change.
+- BC (Buying Climax): Marked increases in volume and spread near a top. Public buying absorbed by professionals. Often coincides with good news. Marks potential top.
+- AR (Automatic Reaction): Selloff after BC as buying diminishes and supply continues. Low helps define lower boundary of distribution TR.
+- ST (Secondary Test): Price revisits BC area. For confirmed top, supply must outweigh demand with decreased volume and spread. May take form of UT (Upthrust).
+- UT (Upthrust): Price moves above TR resistance then quickly reverses back into range. A bull trap testing remaining demand.
+- SOW (Sign of Weakness): Down-move to or past lower TR boundary on increased spread and volume. Shows supply is dominant.
+- LPSY (Last Point of Supply): Feeble rally on narrow spread after SOW. Shows difficulty advancing. Exhaustion of demand before markdown.
+- UTAD (Upthrust After Distribution): Distributional counterpart to spring. Price breaks above TR resistance then reverses. Tests new demand. NOT required (Schematic #2 has no UTAD).
+
+ACCUMULATION PHASES:
+- Phase A: Stopping the downtrend. Identified by PS, SC, AR, ST sequence. SC and ST lows + AR high define the TR boundaries. Heavy volume on SC transitioning to lighter volume on ST.
+- Phase B: Building the cause. Institutions accumulate at low prices. Multiple STs, possible upthrusts at upper TR. Wide swings early, narrowing over time as supply absorbed. Volume on downswings diminishes over time.
+- Phase C: Testing remaining supply. Spring or shakeout breaks below TR support then reverses (Schematic #1). Or testing occurs at higher level within TR without spring (Schematic #2). Low-volume test = ready for markup.
+- Phase D: Demand dominates. Pattern of SOSs on widening spread/increasing volume and LPSs on smaller spread/diminished volume. Price reaches at least the top of TR.
+- Phase E: Markup begins. Stock leaves TR, demand in full control. Reactions are short-lived. Re-accumulation TRs ("stepping stones") may form.
+
+DISTRIBUTION PHASES:
+- Phase A: Stopping the uptrend. PSY and BC followed by AR and ST. May terminate without climactic action (exhaustion shown by decreasing spread/volume on rallies).
+- Phase B: Building cause for downtrend. Institutions distribute long inventory and initiate shorts. SOWs show increased spread/volume to downside.
+- Phase C: Testing remaining demand via UT or UTAD (bull trap). Or demand so weak price doesn't reach BC level. UTAD not required.
+- Phase D: Supply clearly dominant. Price travels to or through TR support. Multiple weak rallies (LPSYs). Clear break of support or decline below mid-TR.
+- Phase E: Markdown unfolds. Stock leaves TR, supply in control. Rallies are feeble. May lead to re-distribution TR.
+
+SCHEMATICS:
+- Accumulation #1: Has a Spring/Shakeout in Phase C (price breaks below support then reverses).
+- Accumulation #2: NO spring. Testing occurs at higher levels within the TR.
+- Distribution #1: Has a UTAD in Phase C (price breaks above resistance then reverses).
+- Distribution #2: NO UTAD. Demand too weak to push to BC level.
+- Re-Accumulation: Occurs during a longer uptrend. Phase A resembles distribution. Shorter duration, smaller amplitude than primary accumulation.
+- Re-Distribution: Occurs within a larger downtrend. Phase A may resemble accumulation with climactic downside action."#;
+
+const WYCKOFF_PROMPT: &str = r#"Analyze this price chart using the Wyckoff Method.
+
+CRITICAL: Focus your analysis on the MOST RECENT price action — the rightmost portion of the chart (the current/live edge). The older price history visible on the left side of the chart is only CONTEXT to help you understand where price has been. Your job is to identify what is happening RIGHT NOW at the current price.
+
+Ask yourself:
+1. What is the CURRENT structure at the right edge? Is price currently in a trading range, breaking out of one, or trending?
+2. What was the MOST RECENT significant event? (e.g., did price just spring below support? just rally on high volume? just fail at resistance?)
+3. What Wyckoff phase is the CURRENT price action in — not what phase the entire chart history covers?
+4. Based on the recent price bars, volume, and spread at the RIGHT EDGE: what is the immediate bias?
+
+Analyze step by step:
+- RECENT STRUCTURE: Identify the most recent trading range, trend, or transition at the right side of the chart.
+- VOLUME AT THE EDGE: Is recent volume expanding or contracting? On which direction (up-bars vs down-bars)?
+- SPREAD AT THE EDGE: Are recent price bars widening or narrowing? In which direction?
+- CURRENT EVENTS: What Wyckoff events have occurred in the MOST RECENT trading range or trend? List them chronologically.
+- CURRENT PHASE: Which phase (A-E) describes where price is RIGHT NOW in the current structure?
+- SCHEMATIC FIT: Which schematic best matches the current/most recent structure?
+
+Return ONLY this JSON:
+{"market_phase":"Accumulation|Markup|Distribution|Markdown","schematic":"Accumulation #1|Accumulation #2|Distribution #1|Distribution #2|Re-Accumulation|Re-Distribution","wyckoff_phase":"A|B|C|D|E","events":["list Wyckoff events from the CURRENT/MOST RECENT structure only, in chronological order: PS,SC,AR,ST,Spring,Test,SOS,LPS,BU,PSY,BC,UT,SOW,LPSY,UTAD"],"current_transition":"Absorbing Supply|Testing Support|Testing Resistance|Spring Rally|Markup Beginning|Breaking Out|Pulling Back|Topping Out|Distributing|Breaking Down|Shakeout Recovery|Demand Weakening|Supply Exhaustion|Rally Fading|Trending Up|Trending Down|Range Bound","bias":"Bullish|Bearish|Neutral"}"#;
+
+#[tauri::command]
+async fn save_temp_image(image_base64: String) -> Result<String, String> {
+    let temp_dir = std::env::temp_dir();
+    let path = temp_dir.join("quanthud_chart_capture.png");
+    let bytes = STANDARD.decode(&image_base64).map_err(|e| e.to_string())?;
+    std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn analyze_chart(
+    image_base64: String,
+    analysis_types: Vec<String>,
+    provider: String,
+    base_url: String,
+    model: String,
+) -> Result<String, String> {
+    let mut prompt_parts: Vec<String> = Vec::new();
+
+    for t in &analysis_types {
+        match t.as_str() {
+            "wyckoff" => prompt_parts.push(WYCKOFF_PROMPT.to_string()),
+            _ => {}
+        }
+    }
+
+    if prompt_parts.is_empty() {
+        return Err("No valid analysis types selected".into());
+    }
+
+    let prompt = prompt_parts.join("\n\n---\n\n");
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(300))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let (url, body) = match provider.as_str() {
+        "ollama" => {
+            // Ollama /api/chat with images array + forced JSON mode
+            let url = format!("{}/api/chat", base_url.trim_end_matches('/'));
+            let body = serde_json::json!({
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": WYCKOFF_SYSTEM},
+                    {"role": "user", "content": prompt, "images": [image_base64]}
+                ],
+                "stream": false,
+                "format": "json",
+                "options": {"temperature": 0}
+            });
+            (url, body)
+        }
+        "lmstudio" => {
+            // LM Studio OpenAI-compatible /v1/chat/completions + forced JSON mode
+            let url = format!("{}/v1/chat/completions", base_url.trim_end_matches('/'));
+            let body = serde_json::json!({
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": WYCKOFF_SYSTEM},
+                    {"role": "user", "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": format!("data:image/png;base64,{}", image_base64)
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": prompt
+                        }
+                    ]}
+                ],
+                "max_tokens": 2048,
+                "temperature": 0,
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "wyckoff_analysis",
+                        "strict": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "market_phase": {"type": "string", "enum": ["Accumulation", "Markup", "Distribution", "Markdown"]},
+                                "schematic": {"type": "string"},
+                                "wyckoff_phase": {"type": "string", "enum": ["A", "B", "C", "D", "E"]},
+                                "events": {"type": "array", "items": {"type": "string", "enum": ["PS","SC","AR","ST","Spring","Shakeout","Test","SOS","LPS","BU","PSY","BC","UT","SOW","LPSY","UTAD"]}},
+                                "current_transition": {"type": "string", "enum": ["Absorbing Supply","Testing Support","Testing Resistance","Spring Rally","Markup Beginning","Breaking Out","Pulling Back","Topping Out","Distributing","Breaking Down","Shakeout Recovery","Demand Weakening","Supply Exhaustion","Rally Fading","Trending Up","Trending Down","Range Bound"]},
+                                "bias": {"type": "string", "enum": ["Bullish", "Bearish", "Neutral"]}
+                            },
+                            "required": ["market_phase", "schematic", "wyckoff_phase", "events", "current_transition", "bias"],
+                            "additionalProperties": false
+                        }
+                    }
+                },
+                "stream": false
+            });
+            (url, body)
+        }
+        _ => return Err(format!("Unknown AI provider: {}", provider)),
+    };
+
+    let res = client
+        .post(&url)
+        .header("content-type", "application/json")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| {
+            if e.is_timeout() {
+                "Request timed out. The model may need more time or resources.".to_string()
+            } else if e.is_connect() {
+                format!("Cannot connect to {}. Is {} running?", base_url, provider)
+            } else {
+                format!("Request failed: {}", e)
+            }
+        })?;
+
+    if !res.status().is_success() {
+        let status = res.status();
+        let error_body = res.text().await.unwrap_or_default();
+        return Err(format!("AI error ({}): {}", status, error_body));
+    }
+
+    let data: serde_json::Value = res
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+    // Extract text based on provider response format
+    let text = match provider.as_str() {
+        "ollama" => data["message"]["content"]
+            .as_str()
+            .unwrap_or("")
+            .to_string(),
+        "lmstudio" => {
+            // Some reasoning models (e.g. Qwen3.5) put output in reasoning_content instead of content
+            let content = data["choices"][0]["message"]["content"]
+                .as_str()
+                .unwrap_or("")
+                .to_string();
+            if content.is_empty() {
+                data["choices"][0]["message"]["reasoning_content"]
+                    .as_str()
+                    .unwrap_or("")
+                    .to_string()
+            } else {
+                content
+            }
+        }
+        _ => String::new(),
+    };
+
+    if text.is_empty() {
+        return Err("Empty response from AI model".into());
+    }
+
+    Ok(text)
+}
+
 // ── App Updates ──
 
 #[derive(Serialize)]
@@ -1784,6 +2135,7 @@ pub fn run() {
             pick_folder,
             pick_file,
             launch_app,
+            get_app_icon,
             get_default_screenshots_folder,
             list_os_screenshots,
             read_screenshot_file,
@@ -1802,7 +2154,9 @@ pub fn run() {
             start_speech_recognition,
             stop_speech_recognition,
             check_for_update,
-            download_and_install_update
+            download_and_install_update,
+            analyze_chart,
+            save_temp_image
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

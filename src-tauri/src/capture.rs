@@ -15,7 +15,9 @@ pub enum CaptureError {
 }
 
 /// Capture the primary screen, optionally cropping to a region, return as base64 PNG
-pub fn capture_screen_base64(region: Option<[i32; 4]>) -> Result<(String, u32, u32), CaptureError> {
+/// When `default_crop` is true and no region is given, crops to right 20% (fib levels).
+/// When false, returns the full screen.
+pub fn capture_screen_base64(region: Option<[i32; 4]>, default_crop: bool) -> Result<(String, u32, u32), CaptureError> {
     let screens = Screen::all().map_err(|e| CaptureError::CaptureFailed(e.to_string()))?;
 
     if screens.is_empty() {
@@ -47,7 +49,7 @@ pub fn capture_screen_base64(region: Option<[i32; 4]>) -> Result<(String, u32, u
         let crop_h = h.max(1) as u32;
 
         dynamic_img = dynamic_img.crop_imm(crop_x, crop_y, crop_w, crop_h);
-    } else {
+    } else if default_crop {
         // Default: crop to right 20% where fib levels typically appear
         let crop_x = (width as f32 * 0.80) as u32;
         dynamic_img = dynamic_img.crop_imm(crop_x, 0, width - crop_x, height);
